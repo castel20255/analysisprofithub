@@ -96,7 +96,9 @@ export function useDeriv(initialSymbol = "", initialMaxTicks = 1000) {
                      sym.includes("BOOM") || 
                      sym.includes("CRASH") ||
                      sym.includes("R_") ||
-                     sym.includes("1HZ");
+                     sym.includes("1HZ") ||
+                     sym.includes("STEP") ||
+                     sym.includes("RB");
             }).sort((a, b) => {
               const symA = a.symbol.toUpperCase();
               const symB = b.symbol.toUpperCase();

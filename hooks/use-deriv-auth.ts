@@ -335,6 +335,7 @@ export function useDerivAuth() {
       localStorage.setItem("deriv_api_token", primaryToken)
       localStorage.setItem("active_login_id", preferredAccount.id)
       setToken(primaryToken)
+      setIsLoggedIn(true)
       setActiveLoginId(preferredAccount.id)
       activeLoginIdRef.current = preferredAccount.id
 
@@ -357,7 +358,8 @@ export function useDerivAuth() {
       url.searchParams.delete("scope")
       window.history.replaceState({}, document.title, url.pathname + (url.search || ""))
 
-      // Connect with the token
+      // Begin final auth connection for the legacy token
+      setIsInitializing(true)
       connectWithToken(primaryToken)
       return
     }

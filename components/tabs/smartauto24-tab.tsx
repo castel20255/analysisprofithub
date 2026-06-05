@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useDerivAPI } from "@/lib/deriv-api-context"
-import { DERIV_CONFIG, DERIV_API } from "@/lib/deriv-config"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -738,24 +737,20 @@ export function SmartAuto24Tab({
     <div className="space-y-4">
       {!isAuthorized ? (
         <Card
-          className={`p-6 sm:p-12 border text-center ${theme === "dark" ? "bg-[#0a0e27]/80 border-red-500/30" : "bg-white border-gray-200"}`}
+          className={`border ${theme === "dark" ? "bg-amber-500/5 border-amber-500/20 backdrop-blur-xl" : "bg-amber-50 border-amber-200"}`}
         >
-          <CardContent className="p-3 sm:pt-6 flex flex-col items-center gap-4">
-            <AlertCircle className={`w-8 h-8 sm:w-12 sm:h-12 ${theme === "dark" ? "text-red-400" : "text-red-500"}`} />
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`p-2 rounded-full shrink-0 ${theme === "dark" ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-100"}`}>
+              <AlertCircle className={`w-4 h-4 ${theme === "dark" ? "text-amber-400" : "text-amber-600"}`} />
+            </div>
             <div>
-              <h3 className={`text-sm sm:text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <p className={`text-xs font-bold ${theme === "dark" ? "text-amber-400" : "text-amber-700"}`}>
                 Authentication Required
-              </h3>
-              <p className={`text-[10px] sm:text-sm text-gray-400 mt-1 sm:mt-2`}>
-                Please log in to use SmartAuto24
+              </p>
+              <p className={`text-[10px] mt-0.5 ${theme === "dark" ? "text-amber-400/70" : "text-amber-600"}`}>
+                Please log in using the <strong>Login</strong> button in the header to use SmartAuto24.
               </p>
             </div>
-            <Button
-              onClick={() => (window as any).location.href = `${DERIV_API.OAUTH}?app_id=${DERIV_CONFIG.APP_ID}&l=en&brand=deriv`}
-              className="bg-red-500 hover:bg-red-600 text-white h-8 sm:h-10 text-[10px] sm:text-sm"
-            >
-              Login to Deriv
-            </Button>
           </CardContent>
         </Card>
       ) : (

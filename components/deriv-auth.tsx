@@ -1,6 +1,7 @@
 "use client"
 
 import { useDerivAPI } from "@/lib/deriv-api-context"
+import { DERIV_LEGACY_APP_ID } from "@/lib/deriv-config"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -43,7 +44,8 @@ export function DerivAuth({ theme = "dark" }: DerivAuthProps) {
   }, [activeLoginId])
 
   const createDerivAccount = () => {
-    window.open("https://track.deriv.com/_1mHiO0UpCX6NhxmBqQyZL2Nd7ZgqdRLk/1/", "_blank", "noopener,noreferrer")
+    const signUpUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${DERIV_LEGACY_APP_ID}&client_id=${DERIV_LEGACY_APP_ID}`
+    window.open(signUpUrl, "_blank", "noopener,noreferrer")
   }
 
   const getCurrencyName = (currency: string) => {

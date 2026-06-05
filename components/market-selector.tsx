@@ -20,13 +20,19 @@ export function MarketSelector({ symbols, currentSymbol, onSymbolChange, theme =
   const groupedSymbols = useMemo(() => {
     const volatilityIndices: DerivSymbol[] = []
     const jumpIndices: DerivSymbol[] = []
+    const boomCrashIndices: DerivSymbol[] = []
+    const stepIndices: DerivSymbol[] = []
     const otherSymbols: DerivSymbol[] = []
 
     symbols.forEach((symbol) => {
       const sym = symbol.symbol.toUpperCase();
       const name = (symbol.display_name || "").toUpperCase();
       
-      if (sym.includes("R_") || sym.includes("1HZ") || name.includes("VOLATILITY")) {
+      if (sym.includes("BOOM") || sym.includes("CRASH")) {
+        boomCrashIndices.push(symbol)
+      } else if (sym.includes("STEP") || name.includes("STEP")) {
+        stepIndices.push(symbol)
+      } else if (sym.includes("R_") || sym.includes("1HZ") || name.includes("VOLATILITY")) {
         volatilityIndices.push(symbol)
       } else if (sym.includes("JUMP") || name.includes("JUMP")) {
         jumpIndices.push(symbol)
@@ -44,6 +50,8 @@ export function MarketSelector({ symbols, currentSymbol, onSymbolChange, theme =
 
     volatilityIndices.sort(sortFn)
     jumpIndices.sort(sortFn)
+    boomCrashIndices.sort(sortFn)
+    stepIndices.sort(sortFn)
 
     const groups: Record<string, DerivSymbol[]> = {}
     otherSymbols.forEach((symbol) => {
@@ -61,6 +69,12 @@ export function MarketSelector({ symbols, currentSymbol, onSymbolChange, theme =
     }
     if (jumpIndices.length > 0) {
       sortedGroups["Jump Indices"] = jumpIndices
+    }
+    if (boomCrashIndices.length > 0) {
+      sortedGroups["Boom/Crash Indices"] = boomCrashIndices
+    }
+    if (stepIndices.length > 0) {
+      sortedGroups["Step Indices"] = stepIndices
     }
 
     Object.keys(groups)
