@@ -627,6 +627,6 @@ export class DerivAPIClient {
   }
 
   isAuth(): boolean {
-    return this.isAuthorised
+    return this.isAuthorised || this.manager.isAuthorized
   }
 }
