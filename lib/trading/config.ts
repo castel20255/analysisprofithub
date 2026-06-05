@@ -5,7 +5,7 @@ import { DERIV_APP_ID as CONFIG_DERIV_APP_ID } from "@/lib/deriv-config"
 const configSchema = z.object({
   DERIV_APP_ID: z.string().default(CONFIG_DERIV_APP_ID),
   DERIV_API_TOKEN: z.string(),
-  WS_URL: z.string().default("wss://ws.deriv.com/v2/options/public"),
+  WS_URL: z.string().default("wss://api.derivws.com/trading/v1/options/ws/public"),
   EXECUTION_MODE: z.enum(["demo", "live"]).default("demo"),
   MARKETS: z.string().default(""),
   BASE_STAKE_USD: z.coerce.number().default(1),

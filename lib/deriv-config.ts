@@ -52,22 +52,22 @@ export const DERIV_CONFIG = {
 // Deriv platform URLs removed – no longer needed. Migration to API v2.0 pending.
 
 export const DERIV_API = {
-  // v2 WebSocket base (no app_id — managers append it themselves or use OTP URL)
-  WEBSOCKET: "wss://ws.deriv.com/v2/options/public",
-  // Named WebSocket URLs (v2) — include app_id for direct use
-  WEBSOCKET_PUBLIC: `wss://ws.deriv.com/v2/options/public?app_id=${DERIV_APP_ID}`,
-  WEBSOCKET_DEMO: `wss://ws.deriv.com/v2/options/demo?app_id=${DERIV_APP_ID}`,
-  WEBSOCKET_REAL: `wss://ws.deriv.com/v2/options/real?app_id=${DERIV_APP_ID}`,
-  // OAuth endpoints (v2)
+  // v1 Options WebSocket base (no app_id — managers append it themselves or use OTP URL)
+  WEBSOCKET: "wss://api.derivws.com/trading/v1/options/ws/public",
+  // Named WebSocket URLs — include app_id for direct use
+  WEBSOCKET_PUBLIC: `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${DERIV_APP_ID}`,
+  WEBSOCKET_DEMO: `wss://api.derivws.com/trading/v1/options/ws/demo?app_id=${DERIV_APP_ID}`,
+  WEBSOCKET_REAL: `wss://api.derivws.com/trading/v1/options/ws/real?app_id=${DERIV_APP_ID}`,
+  // OAuth endpoints
   OAUTH: "https://oauth.deriv.com/oauth2/authorize",
   TOKEN: "https://oauth.deriv.com/oauth2/token",
-  // REST base URL (v2)
-  REST_BASE: "https://api.deriv.com/v2",
+  // REST base URL
+  REST_BASE: "https://api.derivws.com",
   // Options WS structure (kept for compatibility)
   OPTIONS_WS: {
-    DEMO: `wss://ws.deriv.com/v2/options/demo?app_id=${DERIV_APP_ID}`,
-    REAL: `wss://ws.deriv.com/v2/options/real?app_id=${DERIV_APP_ID}`,
-    PUBLIC: `wss://ws.deriv.com/v2/options/public?app_id=${DERIV_APP_ID}`,
+    DEMO: `wss://api.derivws.com/trading/v1/options/ws/demo?app_id=${DERIV_APP_ID}`,
+    REAL: `wss://api.derivws.com/trading/v1/options/ws/real?app_id=${DERIV_APP_ID}`,
+    PUBLIC: `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${DERIV_APP_ID}`,
   },
 } as const
 

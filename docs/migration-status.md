@@ -1,7 +1,7 @@
-# Migration Status — Deriv API v2
+# Migration Status — Deriv API Options v1
 
 **Last Updated:** 2026-06-05  
-**Migration Target:** Deriv API v2 (REST + OTP WebSocket)  
+**Migration Target:** Deriv API Options v1 (REST + OTP WebSocket)  
 **Reference:** https://developers.deriv.com/docs/
 
 ---
@@ -24,18 +24,18 @@
 
 | File | Old URL | New URL | Status |
 |------|---------|---------|--------|
-| `lib/deriv-config.ts` — `WEBSOCKET` | `wss://ws.derivws.com/websockets/v3` | `wss://ws.deriv.com/v2/options/public` | ✅ Done |
-| `lib/deriv-config.ts` — `WEBSOCKET_PUBLIC` | _(new field)_ | `wss://ws.deriv.com/v2/options/public?app_id=…` | ✅ Done |
-| `lib/deriv-config.ts` — `WEBSOCKET_DEMO` | _(new field)_ | `wss://ws.deriv.com/v2/options/demo?app_id=…` | ✅ Done |
-| `lib/deriv-config.ts` — `WEBSOCKET_REAL` | _(new field)_ | `wss://ws.deriv.com/v2/options/real?app_id=…` | ✅ Done |
-| `lib/trading/config.ts` — `WS_URL` | `wss://ws.derivws.com/websockets/v3` | `wss://ws.deriv.com/v2/options/public` | ✅ Done |
-| `components/tabs/Slider.tsx` — `API_URL` | Legacy endpoint | `wss://ws.deriv.com/v2/options/public` | ✅ Done |
+| `lib/deriv-config.ts` — `WEBSOCKET` | `wss://ws.derivws.com/websockets/v3` | `wss://api.derivws.com/trading/v1/options/ws/public` | ✅ Done |
+| `lib/deriv-config.ts` — `WEBSOCKET_PUBLIC` | _(new field)_ | `wss://api.derivws.com/trading/v1/options/ws/public?app_id=…` | ✅ Done |
+| `lib/deriv-config.ts` — `WEBSOCKET_DEMO` | _(new field)_ | `wss://api.derivws.com/trading/v1/options/ws/demo?app_id=…` | ✅ Done |
+| `lib/deriv-config.ts` — `WEBSOCKET_REAL` | _(new field)_ | `wss://api.derivws.com/trading/v1/options/ws/real?app_id=…` | ✅ Done |
+| `lib/trading/config.ts` — `WS_URL` | `wss://ws.derivws.com/websockets/v3` | `wss://api.derivws.com/trading/v1/options/ws/public` | ✅ Done |
+| `components/tabs/Slider.tsx` — `API_URL` | Legacy endpoint | `wss://api.derivws.com/trading/v1/options/ws/public?app_id=…` | ✅ Done |
 
 ### ✅ REST Endpoints
 
 | File | Path | Status |
 |------|------|--------|
-| `lib/deriv-config.ts` — `REST_BASE` | `https://api.deriv.com/v2` | ✅ Done |
+| `lib/deriv-config.ts` — `REST_BASE` | `https://api.derivws.com` | ✅ Done |
 | `lib/deriv-websocket-manager.ts` — accounts | `/trading/v1/options/accounts` | ✅ Done |
 | `lib/deriv-websocket-manager.ts` — OTP | `/trading/v1/options/accounts/{id}/otp` | ✅ Done |
 | `lib/deriv-rest-client.ts` — accounts | `/trading/v1/options/accounts` | ✅ Done |
