@@ -5,7 +5,7 @@
  */
 
 import { OtpResponse } from "./deriv-otp-types"
-import { DERIV_CONFIG } from "./deriv-config"
+import { DERIV_API, DERIV_CONFIG } from "./deriv-config"
 
 export class DerivOtpHandler {
   private static instance: DerivOtpHandler | null = null
@@ -30,7 +30,7 @@ export class DerivOtpHandler {
   async getOtpUrl(accessToken: string, accountId: string): Promise<string> {
     console.log("[v0] 🔐 OTP: Requesting OTP URL for account", accountId)
 
-    const url = `https://api.derivws.com/trading/v1/options/accounts/${accountId}/otp`
+    const url = `${DERIV_API.REST_BASE}/trading/v1/options/accounts/${accountId}/otp`
 
     try {
       const response = await fetch(url, {

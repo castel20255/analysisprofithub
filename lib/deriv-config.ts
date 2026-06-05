@@ -49,28 +49,26 @@ export const DERIV_CONFIG = {
   REDIRECT_URL: DERIV_REDIRECT_URL,
 } as const
 
-// Official Deriv Platform URLs
-export const DERIV_PLATFORMS = {
-  DTRADER: "https://app.deriv.com",
-  DBOT: "https://app.deriv.com/bot",
-  SMARTTRADER: "https://smarttrader.deriv.com",
-  COPYTRADING: "https://app.deriv.com/copy-trading",
-} as const
+// Deriv platform URLs removed – no longer needed. Migration to API v2.0 pending.
 
 export const DERIV_API = {
-  // Official Deriv API Endpoints
-  // Priority: V1 Options API is the modern standard
-  WEBSOCKET: `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${DERIV_APP_ID}`,
-  WEBSOCKET_V3: `wss://ws.derivws.com/websockets/v3?app_id=${DERIV_APP_ID}`,
+  // v2 WebSocket base (no app_id — managers append it themselves or use OTP URL)
+  WEBSOCKET: "wss://ws.deriv.com/v2/options/public",
+  // Named WebSocket URLs (v2) — include app_id for direct use
+  WEBSOCKET_PUBLIC: `wss://ws.deriv.com/v2/options/public?app_id=${DERIV_APP_ID}`,
+  WEBSOCKET_DEMO: `wss://ws.deriv.com/v2/options/demo?app_id=${DERIV_APP_ID}`,
+  WEBSOCKET_REAL: `wss://ws.deriv.com/v2/options/real?app_id=${DERIV_APP_ID}`,
+  // OAuth endpoints (v2)
   OAUTH: "https://oauth.deriv.com/oauth2/authorize",
-  // New Options API (REST)
-  REST_BASE: "https://api.derivws.com",
-  // New Options API (WebSocket - paths)
+  TOKEN: "https://oauth.deriv.com/oauth2/token",
+  // REST base URL (v2)
+  REST_BASE: "https://api.deriv.com/v2",
+  // Options WS structure (kept for compatibility)
   OPTIONS_WS: {
-    DEMO: `wss://api.derivws.com/trading/v1/options/ws/demo?app_id=${DERIV_APP_ID}`,
-    REAL: `wss://api.derivws.com/trading/v1/options/ws/real?app_id=${DERIV_APP_ID}`,
-    PUBLIC: `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${DERIV_APP_ID}`,
-  }
+    DEMO: `wss://ws.deriv.com/v2/options/demo?app_id=${DERIV_APP_ID}`,
+    REAL: `wss://ws.deriv.com/v2/options/real?app_id=${DERIV_APP_ID}`,
+    PUBLIC: `wss://ws.deriv.com/v2/options/public?app_id=${DERIV_APP_ID}`,
+  },
 } as const
 
 // Official GitHub Repositories

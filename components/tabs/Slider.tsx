@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 // --- Configuration ---
-const API_URL = `wss://ws.derivws.com/websockets/v3?app_id=${DERIV_CONFIG.APP_ID}`;
+const API_URL = `wss://ws.deriv.com/v2/options/public?app_id=${DERIV_CONFIG.APP_ID}`;
 
 // Map Deriv contract types to user-friendly UI categories
 const CONTRACT_GROUPS = {

@@ -42,6 +42,8 @@
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
     "@supabase/supabase-js": "^2.98.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/ws": "^8.18.1",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "better-sqlite3": "latest",
@@ -61,6 +63,7 @@
     "mobx-react-lite": "^4.1.1",
     "next": "15.5.9",
     "next-themes": "latest",
+    "node-fetch": "^3.3.2",
     "path": "latest",
     "postgres": "^3.4.8",
     "react": "^19",
@@ -75,6 +78,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
+    "ws": "^8.21.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
