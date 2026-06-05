@@ -55,6 +55,8 @@ export const DERIV_CONFIG = {
 export const DERIV_API = {
   // v1 Options WebSocket base (no app_id — managers append it themselves or use OTP URL)
   WEBSOCKET: "wss://api.derivws.com/trading/v1/options/ws/public",
+  // Legacy WebSocket base for standard { authorize: token } support
+  WEBSOCKET_LEGACY: "wss://ws.derivws.com/websockets/v3",
   // Named WebSocket URLs — include app_id for direct use
   WEBSOCKET_PUBLIC: `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${DERIV_APP_ID}`,
   WEBSOCKET_DEMO: `wss://api.derivws.com/trading/v1/options/ws/demo?app_id=${DERIV_APP_ID}`,

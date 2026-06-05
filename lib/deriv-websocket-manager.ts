@@ -129,7 +129,7 @@ export class DerivWebSocketManager {
   private getActiveAppId(): string {
     if (typeof window !== "undefined") {
       const flow = localStorage.getItem("oauth_flow_type")
-      if (flow === "legacy") {
+      if (flow === "legacy" || flow === "manual") {
         return "110211"
       }
     }
@@ -563,9 +563,10 @@ export class DerivWebSocketManager {
   private async authorizeDirectly(token: string): Promise<void> {
     try {
       const currentAppId = this.getActiveAppId()
-      const publicUrl = `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${currentAppId}`
+      // Connect to standard/legacy v3 WebSocket for direct token authorization
+      const publicUrl = `${DERIV_API.WEBSOCKET_LEGACY}?app_id=${currentAppId}`
       
-      if (!this.isConnected() || (this.ws?.url && this.ws.url.includes("otp="))) {
+      if (!this.isConnected() || (this.ws?.url && (this.ws.url.includes("otp=") || this.ws.url.includes("trading/v1/options")))) {
         // Intentional disconnect — suppress auto-reconnect
         await this.disconnect()
         await this.connect(publicUrl, true)

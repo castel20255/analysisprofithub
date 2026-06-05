@@ -488,6 +488,7 @@ export function useDerivAuth() {
       localStorage.setItem("oauth_flow_type", "legacy")
       const params = new URLSearchParams({
         app_id: DERIV_LEGACY_APP_ID,
+        client_id: DERIV_LEGACY_APP_ID,
       })
 
       const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`
