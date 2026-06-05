@@ -5,7 +5,7 @@ import { useDeriv } from "@/hooks/use-deriv"
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Moon, Sun, User, AlertTriangle, Menu, TrendingUp, Layers, Eye, Hash, Clock, Activity } from 'lucide-react'
+import { Moon, Sun, User, AlertTriangle, Menu, TrendingUp, Layers, Eye, Hash, Clock, Activity, LayoutDashboard, Sliders, LineChart, Sparkles, Cpu, Terminal, Radio, Flame, Percent, CheckSquare, XCircle, HelpCircle, BrainCircuit, ArrowUpDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -196,10 +196,17 @@ export default function DerivAnalysisApp() {
               <div className="flex flex-nowrap items-center h-16 sm:h-20 gap-4 sm:gap-6 w-full justify-between overflow-hidden">
 
                 {/* Brand Name Only - Clean Modern */}
-                <div className="flex items-center shrink-0 min-w-[140px] sm:min-w-[200px]">
-                  <div className="flex flex-col leading-tight">
-                    <h1 className={`text-base sm:text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>analysistoolpro</h1>
-                    <h2 className={`text-[9px] sm:text-[10px] font-medium tracking-wide opacity-60 uppercase ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Trading</h2>
+                <div className="flex items-center shrink-0 gap-2.5 sm:min-w-[220px]">
+                  <div className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${theme === "dark" ? "bg-indigo-500/10 text-indigo-400 animate-pulse" : "bg-indigo-50 text-indigo-600"}`}>
+                    <Activity className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="flex flex-col leading-none">
+                    <h1 className={`text-base sm:text-lg font-black tracking-tight uppercase bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent`}>
+                      analysistoolpro
+                    </h1>
+                    <h2 className={`text-[8px] sm:text-[9px] font-black tracking-[0.25em] opacity-60 uppercase ${theme === "dark" ? "text-indigo-300" : "text-indigo-600"}`}>
+                      QUANTUM ENGINE
+                    </h2>
                   </div>
                 </div>
 
@@ -278,10 +285,10 @@ export default function DerivAnalysisApp() {
 
               <div className="px-2 sm:px-6 lg:px-8 flex flex-col gap-2 pb-2">
                 {/* Navigation Tabs - Clean Design */}
-                <div className="flex items-center justify-start w-full overflow-x-auto no-scrollbar -mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8">
-                  <div className={`inline-flex rounded-lg border transition-all duration-500 ${theme === "dark" 
-                    ? "bg-[#0f0f0f] border-white/10" 
-                    : "bg-gray-50 border-gray-200"
+                <div className="flex items-center justify-start w-full overflow-x-auto no-scrollbar -mx-2 sm:-mx-6 lg:-mx-8 px-2 sm:px-6 lg:px-8 py-1">
+                  <div className={`inline-flex rounded-2xl border transition-all duration-500 p-1 gap-1.5 ${theme === "dark" 
+                    ? "bg-slate-950/45 border-white/5 shadow-inner backdrop-blur-md" 
+                    : "bg-slate-100/80 border-slate-200 shadow-xs backdrop-blur-md"
                     }`}>
                     <div className="overflow-x-auto no-scrollbar flex">
                       <ResponsiveTabs theme={theme} value={activeTab} onValueChange={setActiveTab}>
@@ -323,23 +330,44 @@ export default function DerivAnalysisApp() {
                             "ai-analysis": "AI Analysis",
                             "tools-info": "Tools Info"
                           }
+                          const tabIcons: Record<string, any> = {
+                            "dashboard": LayoutDashboard,
+                            "smart-adaptive": Sliders,
+                            "smart-analysis": LineChart,
+                            "smartauto24": Sparkles,
+                            "autobot": Cpu,
+                            "automated": Terminal,
+                            "signals": Radio,
+                            "pro-signals": TrendingUp,
+                            "super-signals": Flame,
+                            "advanced-signals": Activity,
+                            "even-odd": Hash,
+                            "over-under": ArrowUpDown,
+                            "advanced-over-under": Percent,
+                            "matches": CheckSquare,
+                            "differs": XCircle,
+                            "ai-analysis": BrainCircuit,
+                            "tools-info": HelpCircle
+                          }
+                          const IconComponent = tabIcons[tab]
                           return (
                           <TabsTrigger
                             key={tab}
                             value={tab}
-                            className={`shrink-0 rounded-none text-[11px] sm:text-[12px] h-11 sm:h-12 px-4 sm:px-6 whitespace-nowrap transition-all duration-300 font-semibold border-b-2 ${activeTab === tab
+                            className={`shrink-0 rounded-xl text-[10px] sm:text-xs h-9 px-3.5 sm:px-4.5 whitespace-nowrap transition-all duration-300 font-bold flex items-center gap-1.5 border-0 ${activeTab === tab
                               ? theme === "dark"
-                                ? "border-blue-500 text-blue-500 bg-blue-500/10"
-                                : "border-blue-600 text-blue-600 bg-blue-100/50"
+                                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                                : "bg-indigo-600 text-white shadow-md shadow-indigo-500/10"
                               : theme === "dark"
-                                ? "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600"
-                                : "border-transparent text-gray-600 hover:text-gray-700 hover:border-gray-300"
+                                ? "text-slate-400 hover:text-white hover:bg-white/5"
+                                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                               }`}
                             onClick={(e) => {
                               e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
                             }}
                           >
-                            {tabLabels[tab] || tab}
+                            {IconComponent && <IconComponent className="h-3.5 w-3.5 shrink-0" />}
+                            <span>{tabLabels[tab] || tab}</span>
                           </TabsTrigger>
                         )
                         })}
@@ -347,13 +375,14 @@ export default function DerivAnalysisApp() {
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* 2. Balanced HUD Row - Dashboard Grid Style */}
-                <div className="flex items-center justify-center w-full px-1">
-                  <div className={`p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border ${theme === "dark" ? "bg-[#050505]/60 border-white/5 shadow-2xl" : "bg-white/50 border-gray-100 shadow-xl"} backdrop-blur-2xl w-full sm:w-auto`}>
-                    <div className="flex flex-nowrap items-center justify-center gap-0.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
-                      
-                      {/* 1. Market Selection Tile */}
+              {/* 2. Balanced HUD Row - Dashboard Grid Style */}
+              <div className="flex items-center justify-center w-full px-1">
+                <div className={`p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border ${theme === "dark" ? "bg-[#050505]/60 border-white/5 shadow-2xl" : "bg-white/50 border-gray-100 shadow-xl"} backdrop-blur-2xl w-full sm:w-auto`}>
+                  <div className="flex flex-nowrap items-center justify-center gap-0.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 px-0.5">
+                    
+                    {/* 1. Market Selection Tile */}
                       {availableSymbols.length > 0 && (
                         <div className={`flex flex-col items-center justify-center min-w-[110px] sm:min-w-[170px] h-9 sm:h-11 rounded-lg sm:rounded-xl border transition-all ${theme === "dark"
                           ? "bg-white/[0.03] border-white/10 shadow-inner"
@@ -455,7 +484,6 @@ export default function DerivAnalysisApp() {
                   </div>
                 </div>
               </div>
-            </div>
           </header>
         )}
 

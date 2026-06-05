@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, MessageCircle, Download, FileText, Bot } from "lucide-react"
+import { Mail, Phone, MessageCircle, Download, FileText, Bot, Sparkles, Cpu } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface BotFile {
@@ -142,6 +142,76 @@ export function HelpPanel() {
 
   return (
     <div className="space-y-6">
+      <Card className="bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-indigo-500/25">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-indigo-400 animate-pulse" />
+            <CardTitle className="text-white">Connecting AI Assistants to Deriv</CardTitle>
+          </div>
+          <CardDescription className="text-slate-400">
+            Use natural language to configure, explore APIs, and auto-execute trading models with LLMs & MCP
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-slate-300 text-xs sm:text-sm leading-relaxed">
+          <div>
+            <h4 className="text-white font-bold mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> 1. Provide LLM API Context
+            </h4>
+            <p className="text-slate-400 mb-2 leading-normal">
+              Point your LLM or AI assistant (such as ChatGPT Custom GPT, Claude Project, Cursor, or Copilot) to the official Deriv LLM metadata file for up-to-date WebSocket and REST configurations:
+            </p>
+            <div className="bg-slate-950 p-2.5 rounded-xl font-mono text-[10px] sm:text-xs text-indigo-300 border border-white/5 break-all select-all">
+              https://developers.deriv.com/llms.txt
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> 2. Model Context Protocol (MCP) Integration
+            </h4>
+            <p className="text-slate-400 mb-3 leading-normal">
+              Automate tasks by installing the official Deriv MCP server. This allows models to explore active symbols, stream tick histories, check balances, and fetch live endpoints autonomously.
+            </p>
+
+            <h5 className="text-slate-200 font-bold text-xs uppercase tracking-wider mb-2">Claude Desktop Configuration</h5>
+            <p className="text-slate-400 mb-2 leading-normal">
+              Add the following to your <code className="bg-slate-900 px-1 py-0.5 rounded text-white text-[11px]">claude_desktop_config.json</code> under the <code className="bg-slate-900 px-1 py-0.5 rounded text-white text-[11px]">mcpServers</code> section:
+            </p>
+            <pre className="bg-slate-950 p-3 rounded-xl font-mono text-[10px] sm:text-xs text-slate-300 border border-white/5 overflow-x-auto">
+{`{
+  "mcpServers": {
+    "deriv-api": {
+      "command": "npx",
+      "args": ["-y", "@deriv/mcp-server"],
+      "env": {
+        "DERIV_API_TOKEN": "your_api_token_here",
+        "DERIV_APP_ID": "your_app_id_here"
+      }
+    }
+  }
+}`}
+            </pre>
+          </div>
+
+          <div className="pt-2">
+            <h4 className="text-white font-bold mb-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" /> 3. Live Endpoints Configuration
+            </h4>
+            <p className="text-slate-400 mb-2 leading-normal">
+              Configure your agent settings manually or connect directly to the Deriv MCP gateway endpoint:
+            </p>
+            <pre className="bg-slate-950 p-3 rounded-xl font-mono text-[10px] sm:text-xs text-emerald-400 border border-white/5 overflow-x-auto">
+{`{
+  "deriv api": {
+    "url": "https://mcp-api.deriv.com/mcp",
+    "name": "Deriv API"
+  }
+}`}
+            </pre>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20">
         <CardHeader>
           <CardTitle className="text-white">Signal Types & Entry Rules</CardTitle>

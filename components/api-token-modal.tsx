@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Key, ExternalLink, LogIn, Clock } from "lucide-react"
+import { Key, ExternalLink, LogIn, Clock, ShieldCheck, Eye, EyeOff, Sparkles } from "lucide-react"
 
 interface ApiTokenModalProps {
   open: boolean
@@ -17,6 +17,7 @@ interface ApiTokenModalProps {
 
 export function ApiTokenModal({ open, onSubmit, onOAuthLogin, onLegacyOAuthLogin, theme = "dark" }: ApiTokenModalProps) {
   const [tokenInput, setTokenInput] = useState("")
+  const [showToken, setShowToken] = useState(false)
 
   const handleSubmit = () => {
     if (tokenInput.trim().length < 10) {
@@ -28,7 +29,6 @@ export function ApiTokenModal({ open, onSubmit, onOAuthLogin, onLegacyOAuthLogin
 
   const handleOAuthClick = () => {
     console.log("[v0] OAuth login button clicked")
-    // Check if running in v0 preview environment (vusercontent.net)
     if (typeof window !== "undefined" && window.location.hostname.includes("vusercontent.net")) {
       alert("OAuth login is not available in v0's preview environment due to Content Security Policy restrictions.\n\nTo use OAuth:\n1. Deploy this app to your own server\n2. Or use the API Token method below with a token from Deriv\n\nFor development, please enter your Deriv API token manually.")
       return
@@ -61,142 +61,185 @@ export function ApiTokenModal({ open, onSubmit, onOAuthLogin, onLegacyOAuthLogin
         alert(`Legacy OAuth login failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     } else if (onOAuthLogin) {
-      // Fallback to standard if no legacy handler provided
       onOAuthLogin()
     }
   }
 
+  const isDark = theme === "dark"
+
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className={`sm:max-w-md ${theme === "dark" ? "bg-[#0a0e27] border-blue-500/30 text-white" : "bg-white border-gray-200"}`}
+        className={`sm:max-w-md border rounded-[2rem] overflow-hidden shadow-2xl backdrop-blur-3xl transition-all duration-300 ${
+          isDark 
+            ? "bg-slate-950/80 border-white/10 text-white shadow-[0_0_50px_rgba(99,102,241,0.15)]" 
+            : "bg-white/95 border-slate-200 text-slate-900 shadow-xl"
+        }`}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
-          <DialogTitle className={theme === "dark" ? "text-white" : "text-gray-900"}>
-            <div className="flex items-center gap-2">
+        {/* Glow overlay for dark theme */}
+        {isDark && (
+          <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none -z-10" />
+        )}
+
+        <DialogHeader className="relative z-10">
+          <DialogTitle className={`text-xl font-black flex items-center gap-2 tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+            <div className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${isDark ? "bg-indigo-500/10 text-indigo-400" : "bg-indigo-50 text-indigo-600"}`}>
               <LogIn className="w-5 h-5" />
-              Connect to Deriv
             </div>
+            Connect to Deriv
           </DialogTitle>
-          <DialogDescription className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-            Choose your preferred authentication method to connect to the Deriv trading platform.
+          <DialogDescription className={`text-xs mt-1 font-medium leading-relaxed ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            Access automated signals, advanced digit frequency maps, and pro bot configurations.
           </DialogDescription>
         </DialogHeader>
 
-        {/* OAuth Login Option - Modern */}
-        <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-green-500/10 border-green-500/30" : "bg-green-50 border-green-200"}`}>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className={`font-semibold ${theme === "dark" ? "text-green-400" : "text-green-700"}`}>
-              Deriv Login (Recommended)
+        <div className="space-y-4 py-2 relative z-10">
+          {/* Primary Recommended Option: Modern OAuth */}
+          <div className={`p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg ${
+            isDark 
+              ? "bg-emerald-500/[0.03] border-emerald-500/20 hover:border-emerald-500/35" 
+              : "bg-emerald-50/50 border-emerald-100 hover:border-emerald-200"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>
+                <ShieldCheck className="w-3.5 h-3.5" /> Recommended
+              </span>
+              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                isDark ? "bg-emerald-500/25 text-emerald-300" : "bg-emerald-100 text-emerald-800"
+              }`}>
+                Auto
+              </span>
+            </div>
+            <h3 className={`font-bold text-sm tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+              Secure Deriv Login
             </h3>
-            <span className={`text-xs px-2 py-1 rounded ${theme === "dark" ? "bg-green-500/30 text-green-300" : "bg-green-200 text-green-800"}`}>
-              Secure
-            </span>
-          </div>
-          <p className={`text-sm mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            Log in with your Deriv account. Quick, secure, and no API token needed.
-          </p>
-          <Button
-            onClick={handleOAuthClick}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2"
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            Login with Deriv
-          </Button>
-        </div>
-
-        {/* Legacy Login Option */}
-        <div className={`p-3 rounded-lg border ${theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className={`font-semibold text-sm ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
-              Legacy Login (App ID: 110211)
-            </h3>
-            <span className={`text-xs px-2 py-1 rounded ${theme === "dark" ? "bg-blue-500/30 text-blue-300" : "bg-blue-200 text-blue-800"}`}>
-              <Clock className="w-3 h-3 inline mr-1" />
-              Legacy
-            </span>
-          </div>
-          <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            For users with existing legacy app connections. Uses App ID 110211.
-          </p>
-          <Button
-            onClick={handleLegacyOAuthClick}
-            variant="outline"
-            className={`w-full font-semibold py-2 ${theme === "dark" 
-              ? "border-blue-500/50 text-blue-300 hover:bg-blue-500/20" 
-              : "border-blue-300 text-blue-700 hover:bg-blue-50"}`}
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            Login with Legacy App
-          </Button>
-        </div>
-
-        {/* Divider */}
-        <div className="flex items-center gap-2 my-2">
-          <div className={`flex-1 h-px ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
-          <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>OR</span>
-          <div className={`flex-1 h-px ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
-        </div>
-
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="api-token" className={theme === "dark" ? "text-white" : "text-gray-900"}>
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4" />
-                Deriv API Token (Manual)
-              </div>
-            </Label>
-            <Input
-              id="api-token"
-              type="password"
-              placeholder="Enter your Deriv API token"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSubmit()
-              }}
-              className={
-                theme === "dark"
-                  ? "bg-[#0f1629] border-blue-500/30 text-white placeholder:text-gray-500"
-                  : "bg-white border-gray-300"
-              }
-            />
-          </div>
-
-          <div
-            className={`text-sm p-3 rounded-lg ${theme === "dark" ? "bg-amber-500/10 border border-amber-500/30" : "bg-amber-50 border border-amber-200"}`}
-          >
-            <p className={`font-semibold mb-1 ${theme === "dark" ? "text-amber-400" : "text-amber-700"}`}>
-              How to get your API token:
+            <p className={`text-xs mt-1 mb-4 leading-normal ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              Fast, secure single-sign-on directly through the official Deriv OAuth portal. No token handling needed.
             </p>
-            <ol
-              className={`list-decimal list-inside space-y-1 text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+            <Button
+              onClick={handleOAuthClick}
+              className={`w-full h-11 rounded-xl font-bold uppercase tracking-wider text-xs transition-all active:scale-98 shadow-md flex items-center justify-center gap-2 ${
+                isDark
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-900/20"
+                  : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+              }`}
             >
-              <li>Log in to your Deriv account</li>
-              <li>Go to Settings → API Tokens</li>
-              <li>Create a new token with "Trade" permissions</li>
-              <li>Copy and paste the token here</li>
-            </ol>
-            <a
-              href="https://app.deriv.com/account/api-token"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1 mt-2 text-xs font-medium ${theme === "dark" ? "text-amber-400 hover:text-amber-300" : "text-amber-600 hover:text-amber-700"}`}
+              <LogIn className="w-4 h-4" />
+              Sign in with Deriv
+            </Button>
+          </div>
+
+          {/* Secondary Option: Legacy OAuth */}
+          <div className={`p-4 rounded-2xl border transition-all duration-300 ${
+            isDark 
+              ? "bg-blue-500/[0.02] border-blue-500/10 hover:border-blue-500/20" 
+              : "bg-blue-50/30 border-blue-100 hover:border-blue-200"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${isDark ? "text-blue-400" : "text-blue-700"}`}>
+                <Clock className="w-3 h-3" /> Legacy Protocol
+              </span>
+              <span className={`text-[9px] font-bold ${isDark ? "text-slate-500" : "text-slate-400"}`}>App ID: 110211</span>
+            </div>
+            <p className={`text-[11px] leading-normal mb-3 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+              Access via standard Deriv API scopes. Useful if your account requires legacy App ID validation.
+            </p>
+            <Button
+              onClick={handleLegacyOAuthClick}
+              variant="outline"
+              className={`w-full h-10 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 ${
+                isDark
+                  ? "border-blue-500/30 text-blue-300 hover:bg-blue-500/10 hover:border-blue-500/50 bg-transparent"
+                  : "border-blue-200 text-blue-700 hover:bg-blue-50"
+              }`}
             >
-              Go to Deriv API Tokens <ExternalLink className="w-3 h-3" />
-            </a>
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign in via Legacy App
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 py-1">
+            <div className={`flex-1 h-[1px] ${isDark ? "bg-white/5" : "bg-slate-200"}`} />
+            <span className={`text-[10px] font-black tracking-widest ${isDark ? "text-slate-600" : "text-slate-400"}`}>OR</span>
+            <div className={`flex-1 h-[1px] ${isDark ? "bg-white/5" : "bg-slate-200"}`} />
+          </div>
+
+          {/* Option 3: Manual API Token Entry */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="api-token" className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                <Key className="w-3.5 h-3.5 text-indigo-400" /> Deriv API Token (Manual)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="api-token"
+                  type={showToken ? "text" : "password"}
+                  placeholder="Enter your Deriv API token..."
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && tokenInput.trim().length >= 10) handleSubmit()
+                  }}
+                  className={`h-11 rounded-xl pl-4 pr-10 border transition-all text-xs font-mono tracking-wide ${
+                    isDark
+                      ? "bg-slate-900/60 border-white/5 text-white placeholder:text-slate-600 focus:border-indigo-500/50 focus:ring-0 focus:ring-offset-0"
+                      : "bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0 focus:ring-offset-0"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Micro Instruction Card */}
+            <div className={`p-4 rounded-2xl border ${
+              isDark 
+                ? "bg-amber-500/[0.02] border-amber-500/10" 
+                : "bg-amber-50/30 border-amber-100"
+            }`}>
+              <span className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-1 mb-1.5 ${isDark ? "text-amber-400/80" : "text-amber-700"}`}>
+                <Sparkles className="w-3.5 h-3.5" /> Token Generation
+              </span>
+              <ol className={`list-decimal list-inside space-y-1 text-[11px] leading-normal font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                <li>Log in to the official Deriv portal</li>
+                <li>Navigate to Account Settings → API Tokens</li>
+                <li>Generate a token with <span className={isDark ? "text-white" : "text-slate-800"}>"Trade"</span> permissions</li>
+              </ol>
+              <a
+                href="https://app.deriv.com/account/api-token"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 mt-2.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
+                  isDark ? "text-amber-400 hover:text-amber-300" : "text-amber-600 hover:text-amber-700"
+                }`}
+              >
+                Go to Deriv Settings <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 relative z-10 pt-2 border-t border-white/5">
           <Button
             onClick={handleSubmit}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            className={`h-11 px-6 rounded-xl font-bold uppercase tracking-wider text-xs transition-all active:scale-98 shadow-lg ${
+              tokenInput.trim().length >= 10
+                ? isDark
+                  ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/20"
+                  : "bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/10"
+                : "bg-white/5 text-white/30 border border-white/5 cursor-not-allowed"
+            }`}
             disabled={tokenInput.trim().length < 10}
           >
-            Connect
+            Connect Vault
           </Button>
         </div>
       </DialogContent>
