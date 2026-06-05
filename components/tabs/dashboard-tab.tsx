@@ -150,7 +150,6 @@ export function DashboardTab({ theme = "dark" }: DashboardTabProps) {
       currency: currency,
       duration: 5,
       duration_unit: "t",
-      symbol: "1HZ100V",
       underlying_symbol: "1HZ100V",
       req_id: 1,
     })

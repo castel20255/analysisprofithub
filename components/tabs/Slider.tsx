@@ -408,7 +408,6 @@ export default function TradingBotSlider() {
             currency: 'USD',
             duration: formState.ticks,
             duration_unit: durationUnit,
-            symbol: formState.symbol,
             underlying_symbol: formState.symbol, // V1 Options API compatibility
         } as any;
 

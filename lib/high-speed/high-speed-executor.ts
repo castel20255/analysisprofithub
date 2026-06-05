@@ -40,7 +40,6 @@ export class HighSpeedExecutor {
                 currency: "USD",
                 duration: params.duration,
                 duration_unit: params.duration_unit,
-                symbol: params.symbol,
                 underlying_symbol: params.symbol, // V1 Options API compatibility
                 ...(params.prediction !== undefined && { barrier: params.prediction.toString() })
             }

@@ -324,51 +324,37 @@ export class DerivAPIClient {
   async getProposal(params: ProposalRequest): Promise<ProposalResponse> {
     const validatedParams = { ...params }
 
-    // For digit contracts, ensure minimum duration and proper symbol
+    // For digit contracts, ensure minimum duration and ticks duration_unit
     if (params.contract_type?.includes("DIGIT")) {
       if (params.duration < 5) {
         console.log(`[v0] Adjusting duration from ${params.duration} to 5 for digit contract`)
         validatedParams.duration = 5
       }
-      validatedParams.duration_unit = "t" // Force ticks for digit contracts
+      validatedParams.duration_unit = "t"
     }
 
-    // Ensure symbol is a valid continuous index
     if (!validatedParams.symbol || validatedParams.symbol.length === 0) {
       throw new Error("Invalid symbol: Symbol cannot be empty")
     }
 
-    // Send both `symbol` (V3) and `underlying_symbol` (V1 Options API) for cross-version compatibility
     const proposalReq: any = {
       proposal: 1,
-      ...validatedParams,
-      symbol: validatedParams.symbol,
-      underlying_symbol: validatedParams.symbol,
+      amount: validatedParams.amount,
       basis: validatedParams.basis || "stake",
+      contract_type: validatedParams.contract_type,
+      currency: validatedParams.currency,
+      duration: validatedParams.duration,
+      duration_unit: validatedParams.duration_unit,
+      underlying_symbol: validatedParams.symbol,
+      ...(validatedParams.barrier ? { barrier: validatedParams.barrier } : {}),
     }
 
-    let response = await this.send(proposalReq)
+    console.log("[v0] Proposal request payload:", proposalReq)
+
+    const response = await this.send(proposalReq)
 
     if (response.error) {
       console.error("[v0] Proposal error:", response.error)
-
-      const message = response.error.message || "Proposal failed"
-      if (typeof message === "string" && message.includes("Properties not allowed: symbol")) {
-        console.warn("[v0] Retrying proposal without symbol property for compatibility.")
-        const retryReq: any = {
-          proposal: 1,
-          ...validatedParams,
-          underlying_symbol: validatedParams.symbol,
-          basis: validatedParams.basis || "stake",
-        }
-        delete retryReq.symbol
-
-        response = await this.send(retryReq)
-      }
-    }
-
-    if (response.error) {
-      console.error("[v0] Final proposal error:", response.error)
       throw new Error(response.error.message || "Proposal failed")
     }
 
