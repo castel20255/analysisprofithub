@@ -14,9 +14,9 @@
  * - Derivatives Base (optional): https://github.com/deriv-com/derivatives
  */
 
-export const DERIV_APP_ID = "33tdJCamBVncjRj9m3WFe" // Modern Options V1 App ID
+export const DERIV_APP_ID = "110211" // Modern Options V1 App ID (Numeric)
 export const DERIV_LEGACY_APP_ID = "110211" // Legacy App ID for backward compatibility
-export const OAUTH_CLIENT_ID = "33tdJCamBVncjRj9m3WFe" // OAuth App ID (same as DERIV_APP_ID)
+export const OAUTH_CLIENT_ID = "33tdJCamBVncjRj9m3WFe" // OAuth App ID (same as original DERIV_APP_ID)
 
 // Get redirect URL based on environment
 // This must match the PRE-REGISTERED redirect URIs in the Deriv OAuth dashboard (api.deriv.com)

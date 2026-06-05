@@ -20,6 +20,15 @@ interface ConnectionLog {
 import { DERIV_CONFIG, DERIV_API } from "./deriv-config"
 import { extractLastDigit, calculateDecimalCount } from "./digit-utils"
 
+export type ConnectionState = 
+  | "DISCONNECTED"
+  | "CONNECTING"
+  | "CONNECTED"
+  | "AUTHORIZING"
+  | "AUTHORIZED"
+  | "RECONNECTING"
+
+
 /**
  * Unified Deriv WebSocket Manager — backed by the official @deriv/deriv-api DerivAPIBasic.
  * All public methods are unchanged so every tab, hook, and bot continues to work.
@@ -126,22 +135,28 @@ export class DerivWebSocketManager {
 
   public isAuthorized = false
   private readonly appId = DERIV_CONFIG.APP_ID
+  private connectionState: ConnectionState = "DISCONNECTED"
+
+  private setConnectionState(newState: ConnectionState) {
+    console.log(`[v0] 🔄 ConnectionState: ${this.connectionState} -> ${newState}`)
+    this.connectionState = newState
+    
+    // Map state machine states to legacy notify status callbacks
+    if (newState === "CONNECTED" || newState === "AUTHORIZED") {
+      this.notifyConnectionStatus("connected")
+    } else if (newState === "DISCONNECTED") {
+      this.notifyConnectionStatus("disconnected")
+    } else if (newState === "RECONNECTING" || newState === "CONNECTING") {
+      this.notifyConnectionStatus("reconnecting")
+    }
+  }
+
   /**
    * Returns the correct app_id for the WebSocket connection.
-   * - `legacyOnly=true` → always returns the numeric legacy ID (110211), used
-   *   for the V3 ws.derivws.com endpoint which requires a numeric app_id.
-   * - `legacyOnly=false` (default) → returns numeric ID for legacy/manual flows,
-   *   or the modern string ID for the Options V1 endpoint.
+   * Always returns the numeric app_id ("110211") as required by all WebSockets.
    */
   private getActiveAppId(legacyOnly = false): string {
-    if (legacyOnly) return "110211"
-    if (typeof window !== "undefined") {
-      const flow = localStorage.getItem("oauth_flow_type")
-      if (flow === "legacy" || flow === "manual") {
-        return "110211"
-      }
-    }
-    return DERIV_CONFIG.APP_ID
+    return "110211"
   }
   private currentWsUrl: string = DERIV_API.WEBSOCKET
 
@@ -190,6 +205,10 @@ export class DerivWebSocketManager {
     this.currentWsUrl = targetUrl
     if (this.connectionPromise) return this.connectionPromise
 
+    if (this.connectionState !== "RECONNECTING") {
+      this.setConnectionState("CONNECTING")
+    }
+
     this.connectionPromise = new Promise((resolve, reject) => {
       let settled = false
       const settle = (fn: () => void) => { if (!settled) { settled = true; fn() } }
@@ -197,10 +216,10 @@ export class DerivWebSocketManager {
       try {
         console.log(`[v0] 🚀 Opening WebSocket: ${this.currentWsUrl}`)
         this.log("info", `Connecting to ${this.currentWsUrl}`)
-        this.notifyConnectionStatus("reconnecting")
 
-        // Create raw WebSocket
+        // Create raw WebSocket and capture its reference
         this.ws = new WebSocket(this.currentWsUrl)
+        const wsInstance = this.ws
 
         // Wrap with DerivAPIBasic (the bundle uses CommonJS exports)
         // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -209,34 +228,34 @@ export class DerivWebSocketManager {
         this.api = new API({ connection: this.ws })
 
         const connectionTimeout = setTimeout(() => {
+          if (wsInstance !== this.ws) return
           if (this.ws?.readyState !== WebSocket.OPEN) {
             this.log("error", "Connection timeout after 10 seconds")
             this.ws?.close()
             this.connectionPromise = null
-            this.notifyConnectionStatus("disconnected")
+            this.setConnectionState("DISCONNECTED")
             reject(new Error("Connection timeout"))
           }
         }, 10000)
 
         // Use addEventListener to avoid overwriting DerivAPIBasic's internal .onopen/.onclose handlers
         this.ws.addEventListener('open', () => {
+          if (wsInstance !== this.ws) return
           clearTimeout(connectionTimeout)
           console.log(`[v0] DerivAPIBasic WebSocket connected to ${this.ws?.url}`)
           this.log("info", `Connected to ${this.ws?.url}`)
           this.reconnectAttempts = 0
           this.lastMessageTime = Date.now()
-          this.notifyConnectionStatus("connected")
+          this.setConnectionState("CONNECTED")
           this.startHeartbeat()
           this.processMessageQueue()
           this.connectionPromise = null
-          // NOTE: tryAutoAuthorize removed — the auth context/hook already drives authorization.
-          // Having it here caused parallel auth flows fighting each other.
           settle(() => resolve())
         })
 
         // Route all messages through our existing routeMessage handler using the RAW WebSocket event.
-        // This is more reliable than the library's subscribe() as it catches everything immediately.
         this.ws.addEventListener('message', (event) => {
+          if (wsInstance !== this.ws) return
           try {
             this.lastMessageTime = Date.now()
             const data = JSON.parse(event.data)
@@ -253,25 +272,25 @@ export class DerivWebSocketManager {
         })
 
         this.ws.addEventListener('error', (event) => {
+          if (wsInstance !== this.ws) return
           clearTimeout(connectionTimeout)
-          // ErrorEvent serialises as {} — extract a human-readable message instead
           const msg = (event as ErrorEvent).message || "WebSocket connection failed"
           console.error("[v0] WebSocket error:", msg, event)
           this.log("error", `WebSocket error: ${msg}`)
           this.connectionPromise = null
-          this.notifyConnectionStatus("disconnected")
+          this.setConnectionState("DISCONNECTED")
           this.rejectAllPendingRequests(new Error(msg))
           settle(() => reject(new Error(msg)))
         })
 
         this.ws.addEventListener('close', (event) => {
+          if (wsInstance !== this.ws) return
           clearTimeout(connectionTimeout)
           const reason = event.reason || `code ${event.code}`
-          // Only reject if not already resolved/rejected by error handler
           settle(() => reject(new Error(`WebSocket closed during connection: ${reason}`)))
           this.connectionPromise = null
           this.stopHeartbeat()
-          this.notifyConnectionStatus("disconnected")
+          this.setConnectionState("DISCONNECTED")
           this.rejectAllPendingRequests(new Error("WebSocket connection closed"))
 
           // CRITICAL: Only reconnect if this was NOT an intentional close
@@ -288,7 +307,7 @@ export class DerivWebSocketManager {
         console.error("[v0] Connection setup error:", error)
         this.log("error", `Connection setup error: ${error}`)
         this.connectionPromise = null
-        this.notifyConnectionStatus("disconnected")
+        this.setConnectionState("DISCONNECTED")
         this.rejectAllPendingRequests(error instanceof Error ? error : new Error(String(error)))
         settle(() => reject(error instanceof Error ? error : new Error(String(error))))
       }
@@ -478,12 +497,14 @@ export class DerivWebSocketManager {
 
   private async _doAuthorize(token: string): Promise<void> {
     this.accessToken = token
+    this.setConnectionState("AUTHORIZING")
     
     // If the current WebSocket URL already contains an OTP, the connection is already authenticated.
     // Skip the REST handshake to avoid infinite loop or redundant calls.
     if (this.ws?.url && this.ws.url.includes("otp=") && this.ws.readyState === WebSocket.OPEN) {
       this.isAuthorized = true
       this.isOtpConnection = true
+      this.setConnectionState("AUTHORIZED")
       console.log("[v0] Connection is already authenticated via OTP URL.")
       return
     }
@@ -531,6 +552,7 @@ export class DerivWebSocketManager {
           await this.connect(otpUrl, true)
           
           this.isAuthorized = true
+          this.setConnectionState("AUTHORIZED")
           
           // Persist selected account for other tabs to pick up
           try {
@@ -590,6 +612,7 @@ export class DerivWebSocketManager {
       }
 
       this.isAuthorized = true
+      this.setConnectionState("AUTHORIZED")
       const { authorize } = response
       this.currentAccountId = authorize.loginid
 
@@ -603,6 +626,7 @@ export class DerivWebSocketManager {
       console.error("[v0] Fallback WebSocket authorize failed:", fallbackError)
       this.log("error", `Fallback authorize failed: ${fallbackError?.message || String(fallbackError)}`)
       this.isAuthorized = false
+      this.setConnectionState("DISCONNECTED")
       throw fallbackError
     }
   }
@@ -619,6 +643,7 @@ export class DerivWebSocketManager {
   // ─── Heartbeat & reconnect ─────────────────────────────────────────────────
 
   private handleReconnect() {
+    this.setConnectionState("RECONNECTING")
     // ── Guard: prevent parallel reconnection attempts ──
     if (this.isReconnecting) {
       console.log("[v0] handleReconnect: Already reconnecting, skipping.")
@@ -683,6 +708,7 @@ export class DerivWebSocketManager {
           this.reconnectAttempts = 0
           this.otpConsecutiveFailures = 0
           this.isAuthorized = true
+          this.setConnectionState("AUTHORIZED")
           this.isReconnecting = false
           this.log("info", `[OTP] Reconnected successfully for ${this.currentAccountId}`)
         } catch (err) {
@@ -1212,7 +1238,7 @@ export class DerivWebSocketManager {
     this.connectionPromise = null
     this.isAuthorized = false
     this.log("info", "Disconnected")
-    this.notifyConnectionStatus("disconnected")
+    this.setConnectionState("DISCONNECTED")
   }
 
   // ─── Logging ───────────────────────────────────────────────────────────────
