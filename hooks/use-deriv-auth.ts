@@ -227,6 +227,16 @@ export function useDerivAuth() {
         const storedState = sessionStorage.getItem("oauth_state")
         const codeVerifier = sessionStorage.getItem("pkce_code_verifier")
 
+        // Clear PKCE storage immediately to prevent double-exchange
+        sessionStorage.removeItem("oauth_state")
+        sessionStorage.removeItem("pkce_code_verifier")
+
+        // If both are missing, it means this callback was already processed in a concurrent run
+        if (!storedState && !codeVerifier) {
+          console.log("[v0] PKCE auth already processed or in progress, skipping duplicate execution")
+          return
+        }
+
         if (!state || state !== storedState) {
           throw new Error("Invalid state parameter (CSRF protection)")
         }
@@ -445,7 +455,7 @@ export function useDerivAuth() {
         response_type: 'code',
         client_id: OAUTH_CLIENT_ID, // Modern OAuth ID
         redirect_uri: DERIV_REDIRECT_URL,
-        scope: 'openid',
+        scope: 'trade account_manage',
         state: state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
