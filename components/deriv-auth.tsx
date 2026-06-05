@@ -1,7 +1,7 @@
 "use client"
 
 import { useDerivAPI } from "@/lib/deriv-api-context"
-import { DERIV_LEGACY_APP_ID } from "@/lib/deriv-config"
+import { DERIV_LEGACY_APP_ID, OAUTH_CLIENT_ID, DERIV_REDIRECT_URL } from "@/lib/deriv-config"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,7 +44,15 @@ export function DerivAuth({ theme = "dark" }: DerivAuthProps) {
   }, [activeLoginId])
 
   const createDerivAccount = () => {
-    const signUpUrl = `https://oauth.deriv.com/oauth2/authorize?app_id=${DERIV_LEGACY_APP_ID}&client_id=${DERIV_LEGACY_APP_ID}`
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: OAUTH_CLIENT_ID,
+      redirect_uri: DERIV_REDIRECT_URL,
+      scope: 'trade account_manage',
+      app_id: DERIV_LEGACY_APP_ID,
+    })
+
+    const signUpUrl = `https://auth.deriv.com/oauth2/auth?${params.toString()}`
     window.open(signUpUrl, "_blank", "noopener,noreferrer")
   }
 

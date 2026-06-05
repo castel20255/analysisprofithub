@@ -347,10 +347,28 @@ export class DerivAPIClient {
       basis: validatedParams.basis || "stake",
     }
 
-    const response = await this.send(proposalReq)
+    let response = await this.send(proposalReq)
 
     if (response.error) {
       console.error("[v0] Proposal error:", response.error)
+
+      const message = response.error.message || "Proposal failed"
+      if (typeof message === "string" && message.includes("Properties not allowed: symbol")) {
+        console.warn("[v0] Retrying proposal without symbol property for compatibility.")
+        const retryReq: any = {
+          proposal: 1,
+          ...validatedParams,
+          underlying_symbol: validatedParams.symbol,
+          basis: validatedParams.basis || "stake",
+        }
+        delete retryReq.symbol
+
+        response = await this.send(retryReq)
+      }
+    }
+
+    if (response.error) {
+      console.error("[v0] Final proposal error:", response.error)
       throw new Error(response.error.message || "Proposal failed")
     }
 

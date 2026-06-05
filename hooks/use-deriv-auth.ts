@@ -29,10 +29,10 @@ const getStored = (key: string, defaultValue: any) => {
 }
 
 /**
- * Parse Deriv legacy OAuth redirect parameters from the URL.
- * 
- * Deriv's oauth.deriv.com/oauth2/authorize returns tokens via URL query params:
- *   ?acct1=CR1234&token1=abc&cur1=USD&acct2=VRTC5678&token2=def&cur2=USD
+ * Parse legacy Deriv redirect parameters from the URL.
+ *
+ * This is retained for old-style direct token redirects, but newer Deriv
+ * login flows should use auth.deriv.com/oauth2/auth with app_id routing.
  */
 function parseDerivOAuthParams(searchParams: URLSearchParams): { accounts: Array<{ id: string; token: string; currency: string }> } | null {
   const accounts: Array<{ id: string; token: string; currency: string }> = []
@@ -495,23 +495,47 @@ export function useDerivAuth() {
 
   /**
    * Legacy OAuth Login Flow (App ID: 110211)
-   * 
-   * Uses oauth.deriv.com/oauth2/authorize — the traditional Deriv login flow.
-   * Returns tokens directly in URL params (acct1/token1/cur1).
-   * Useful for users who have pre-existing legacy app connections.
+   *
+   * Uses auth.deriv.com/oauth2/auth with `app_id` routing so Deriv can
+   * route legacy users to the legacy API platform while preserving the
+   * standard PKCE code exchange flow.
    */
-  const loginWithDerivLegacy = () => {
+  const loginWithDerivLegacy = async () => {
     console.log("[v0] 🔐 Starting Legacy OAuth login flow (App ID: 110211)...")
     if (typeof window === "undefined") return
 
     try {
       localStorage.setItem("oauth_flow_type", "legacy")
+
+      const array = crypto.getRandomValues(new Uint8Array(64));
+      const codeVerifier = Array.from(array)
+        .map(v => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[v % 66])
+        .join('');
+
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier));
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+
+      const state = crypto.getRandomValues(new Uint8Array(16))
+        .reduce((s, b) => s + b.toString(16).padStart(2, '0'), '');
+
+      sessionStorage.setItem('pkce_code_verifier', codeVerifier);
+      sessionStorage.setItem('oauth_state', state);
+
       const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: OAUTH_CLIENT_ID,
+        redirect_uri: DERIV_REDIRECT_URL,
+        scope: 'trade account_manage',
+        state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
         app_id: DERIV_LEGACY_APP_ID,
-        client_id: DERIV_LEGACY_APP_ID,
       })
 
-      const oauthUrl = `https://oauth.deriv.com/oauth2/authorize?${params.toString()}`
+      const oauthUrl = `https://auth.deriv.com/oauth2/auth?${params.toString()}`
 
       console.log("[v0] 🔐 Redirecting to Deriv Legacy OAuth URL:", oauthUrl)
       window.location.href = oauthUrl
