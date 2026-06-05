@@ -57,6 +57,19 @@ export class DerivWebSocketManager {
   private currentAccountId: string | null = null
   private currentEndpoint: "public" | "demo" | "real" = "public"
   private isOtpConnection = false
+
+  // ── Reconnection guards ──
+  // Suppress reconnect when we intentionally close the socket (during authorize/disconnect)
+  private intentionalDisconnect = false
+  // Prevent parallel reconnection attempts
+  private isReconnecting = false
+  // Circuit breaker: after N consecutive OTP reconnect failures, stop trying OTP
+  private otpConsecutiveFailures = 0
+  private readonly OTP_MAX_FAILURES = 3
+  // Prevent parallel authorize calls
+  private authorizePromise: Promise<void> | null = null
+  // Track active reconnect timer to cancel it
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   
   // Known robust precision fallbacks for synthetic indices (if API metadata is delayed)
   // Pip sizes = number of decimal places in the price quote.
@@ -208,7 +221,8 @@ export class DerivWebSocketManager {
           this.startHeartbeat()
           this.processMessageQueue()
           this.connectionPromise = null
-          this.tryAutoAuthorize()
+          // NOTE: tryAutoAuthorize removed — the auth context/hook already drives authorization.
+          // Having it here caused parallel auth flows fighting each other.
           settle(() => resolve())
         })
 
@@ -245,15 +259,22 @@ export class DerivWebSocketManager {
         this.ws.addEventListener('close', (event) => {
           clearTimeout(connectionTimeout)
           const reason = event.reason || `code ${event.code}`
-          console.log(`[v0] WebSocket closed (${reason}), reconnecting…`)
-          this.log("warning", `WebSocket closed (${reason}), reconnecting…`)
           // Only reject if not already resolved/rejected by error handler
           settle(() => reject(new Error(`WebSocket closed during connection: ${reason}`)))
           this.connectionPromise = null
           this.stopHeartbeat()
           this.notifyConnectionStatus("disconnected")
           this.rejectAllPendingRequests(new Error("WebSocket connection closed"))
-          this.handleReconnect()
+
+          // CRITICAL: Only reconnect if this was NOT an intentional close
+          if (this.intentionalDisconnect) {
+            console.log(`[v0] WebSocket closed intentionally (${reason}), skipping reconnect.`)
+            this.intentionalDisconnect = false
+          } else {
+            console.log(`[v0] WebSocket closed unexpectedly (${reason}), reconnecting…`)
+            this.log("warning", `WebSocket closed (${reason}), reconnecting…`)
+            this.handleReconnect()
+          }
         })
       } catch (error) {
         console.error("[v0] Connection setup error:", error)
@@ -432,11 +453,27 @@ export class DerivWebSocketManager {
    */
   public async authorize(token: string): Promise<void> {
     if (!token) return
+
+    // Prevent parallel authorize calls — return the existing promise if one is in-flight
+    if (this.authorizePromise) {
+      console.log("[v0] ⏳ authorize() already in progress, waiting for existing call...")
+      return this.authorizePromise
+    }
+
+    this.authorizePromise = this._doAuthorize(token)
+    try {
+      await this.authorizePromise
+    } finally {
+      this.authorizePromise = null
+    }
+  }
+
+  private async _doAuthorize(token: string): Promise<void> {
     this.accessToken = token
     
     // If the current WebSocket URL already contains an OTP, the connection is already authenticated.
     // Skip the REST handshake to avoid infinite loop or redundant calls.
-    if (this.ws?.url && this.ws.url.includes("otp=")) {
+    if (this.ws?.url && this.ws.url.includes("otp=") && this.ws.readyState === WebSocket.OPEN) {
       this.isAuthorized = true
       this.isOtpConnection = true
       console.log("[v0] Connection is already authenticated via OTP URL.")
@@ -478,8 +515,10 @@ export class DerivWebSocketManager {
           this.log("info", "OTP obtained. Reconnecting to authenticated environment...")
           this.currentEndpoint = targetAccount.account_type === 'demo' ? 'demo' : 'real'
           
+          // Intentional disconnect — suppress auto-reconnect
           await this.disconnect()
           this.isOtpConnection = true
+          this.otpConsecutiveFailures = 0 // Reset circuit breaker on fresh authorize
           // OTP URL is a complete wss:// URL — connect to it directly.
           await this.connect(otpUrl, true)
           
@@ -527,6 +566,7 @@ export class DerivWebSocketManager {
       const publicUrl = `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${currentAppId}`
       
       if (!this.isConnected() || (this.ws?.url && this.ws.url.includes("otp="))) {
+        // Intentional disconnect — suppress auto-reconnect
         await this.disconnect()
         await this.connect(publicUrl, true)
       }
@@ -556,44 +596,59 @@ export class DerivWebSocketManager {
     }
   }
 
+  // tryAutoAuthorize intentionally disabled — authorization is driven by the
+  // React auth hook/context, which calls manager.authorize() exactly once.
+  // Having it here on every ws.open caused parallel auth flows that fought
+  // each other, creating OTP spam and 429 loops.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private tryAutoAuthorize() {
-    try {
-      const token =
-        localStorage.getItem('authToken') ||
-        localStorage.getItem('clientToken') ||
-        localStorage.getItem('deriv_api_token') || 
-        localStorage.getItem('deriv_auth_token')
-      if (token && token !== 'null' && token.length > 10) {
-        this.authorize(token).catch(err => {
-           console.warn("[v0] Background tryAutoAuthorize failed (likely network error or invalid token):", err?.message || err)
-        })
-      }
-    } catch { /* SSR safety */ }
+    // NO-OP: Authorization is managed externally.
   }
 
   // ─── Heartbeat & reconnect ─────────────────────────────────────────────────
 
   private handleReconnect() {
+    // ── Guard: prevent parallel reconnection attempts ──
+    if (this.isReconnecting) {
+      console.log("[v0] handleReconnect: Already reconnecting, skipping.")
+      return
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.log("error", "Max reconnection attempts reached, resetting counter")
-      setTimeout(() => {
+      this.log("error", "Max reconnection attempts reached. Waiting 60s before reset.")
+      this.isReconnecting = false
+      this.reconnectTimer = setTimeout(() => {
         this.reconnectAttempts = 0
+        this.otpConsecutiveFailures = 0
         this.handleReconnect()
       }, 60000)
       return
     }
     
-    // If we are using modern V1 REST + OTP, always fetch a FRESH OTP URL for the
-    // already-selected account. Re-using a stale OTP URL is the primary cause of
-    // reconnect failures; the canonical reference implementation requires this.
+    this.isReconnecting = true
+
+    // ── OTP Reconnection Path (Modern V1 REST + OTP) ──
     if (this.isOtpConnection && this.accessToken && this.currentAccountId) {
+      // Circuit breaker: after N consecutive OTP failures, stop hammering the endpoint
+      if (this.otpConsecutiveFailures >= this.OTP_MAX_FAILURES) {
+        console.warn(`[v0] ⛔ Circuit breaker: ${this.otpConsecutiveFailures} consecutive OTP failures. Stopping OTP reconnection.`)
+        this.log("error", `Circuit breaker activated after ${this.otpConsecutiveFailures} OTP failures. Waiting 60s.`)
+        this.isReconnecting = false
+        this.reconnectTimer = setTimeout(() => {
+          this.otpConsecutiveFailures = 0
+          this.reconnectAttempts = 0
+          this.handleReconnect()
+        }, 60000)
+        return
+      }
+
       this.messageQueue = [] // Prevent stale messages from previous connection
-      // Reference delays: [500, 1000, 2000, 4000, 8000]
-      const otpDelays = [500, 1000, 2000, 4000, 8000]
+      // Exponential backoff: [2s, 4s, 8s, 16s, 30s]
+      const otpDelays = [2000, 4000, 8000, 16000, 30000]
       const delayMs = otpDelays[Math.min(this.reconnectAttempts, otpDelays.length - 1)]
       this.reconnectAttempts++
       this.log("info", `[OTP] Fetching fresh OTP for ${this.currentAccountId} in ${delayMs}ms (attempt ${this.reconnectAttempts})...`)
-      setTimeout(async () => {
+      this.reconnectTimer = setTimeout(async () => {
         try {
           // Reuses the already cached account ID. Never calls /accounts during reconnect.
           const otpRes = await this.fetchWithAuth(
@@ -603,25 +658,43 @@ export class DerivWebSocketManager {
           const otpUrl = otpRes?.data?.url?.trim()
           if (!otpUrl) throw new Error("OTP response missing data.url")
           
-          await this.disconnect()
+          // Intentional disconnect — suppress the close handler from calling handleReconnect again
+          this.intentionalDisconnect = true
+          if (this.ws) {
+            this.ws.close()
+            this.ws = null
+          }
+          this.api = null
+          this.connectionPromise = null
+          
           await this.connect(otpUrl, true)
           
           this.reconnectAttempts = 0
+          this.otpConsecutiveFailures = 0
           this.isAuthorized = true
+          this.isReconnecting = false
           this.log("info", `[OTP] Reconnected successfully for ${this.currentAccountId}`)
         } catch (err) {
-          this.log("error", `[OTP] Reconnection attempt failed: ${err}. Retrying...`)
+          this.otpConsecutiveFailures++
+          this.log("error", `[OTP] Reconnection attempt failed (${this.otpConsecutiveFailures}/${this.OTP_MAX_FAILURES}): ${err}`)
+          this.isReconnecting = false
           this.handleReconnect()
         }
       }, delayMs)
       return
     }
 
+    // ── Standard (non-OTP) Reconnection Path ──
     this.reconnectAttempts++
-    const delay = this.reconnectDelay * Math.pow(1.2, this.reconnectAttempts - 1)
+    const delay = this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1)
     this.log("info", `Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
-    setTimeout(() => {
-      this.connect(this.currentWsUrl, true).catch((err) => this.log("error", `Reconnection failed: ${err}`))
+    this.reconnectTimer = setTimeout(() => {
+      this.connect(this.currentWsUrl, true)
+        .then(() => { this.isReconnecting = false })
+        .catch((err) => {
+          this.log("error", `Reconnection failed: ${err}`)
+          this.isReconnecting = false
+        })
     }, delay)
   }
 
@@ -1109,13 +1182,23 @@ export class DerivWebSocketManager {
 
   public async disconnect(): Promise<void> {
     this.stopHeartbeat()
+    // Cancel any pending reconnect timer
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    this.isReconnecting = false
     this.unsubscribeAll()
     this.messageQueue = [] // Critical: Wipe the queue to prevent early OTP interference
     if (this.ws) {
+      // CRITICAL: Set intentionalDisconnect BEFORE closing so the close handler
+      // does NOT trigger handleReconnect()
+      this.intentionalDisconnect = true
       this.ws.close()
       this.ws = null
     }
     this.api = null
+    this.connectionPromise = null
     this.isAuthorized = false
     this.log("info", "Disconnected")
     this.notifyConnectionStatus("disconnected")

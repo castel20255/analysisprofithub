@@ -92,23 +92,20 @@ export function DerivAPIProvider({ children }: { children: React.ReactNode }) {
     const client = globalAPIClient
 
     // 2. Handle Connection and Authorization
+    // NOTE: Authorization is driven by the useDerivAuth hook's connectWithToken().
+    // We do NOT call client.authorize(token) here — doing so caused parallel auth
+    // flows that fought each other, spawning duplicate OTP requests and 429 loops.
     const syncConnection = async () => {
       try {
-        if (!client.isConnected()) {
-          setConnectionStatus("connecting")
-          await client.connect()
-          setConnectionStatus("connected")
-        }
-
-        if (token && isLoggedIn && token.length > 10 && !client.isAuth()) {
-          console.log("[v0] Authorizing global client with V1 flow...")
-          // This now triggers the Manager's REST+OTP flow
-          await client.authorize(token)
-        }
-        
         setIsConnected(client.isConnected())
         setIsAuthorized(client.isAuth())
-        setError(null)
+        
+        if (client.isConnected() && client.isAuth() && error) {
+          setError(null)
+          setConnectionStatus("connected")
+        } else if (client.isConnected()) {
+          setConnectionStatus("connected")
+        }
       } catch (err: any) {
         console.error("[v0] Sync failed:", err)
         setConnectionStatus("reconnecting")
