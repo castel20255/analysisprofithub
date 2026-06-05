@@ -70,7 +70,7 @@ export default function DerivAnalysisApp() {
     return saved ? JSON.parse(saved) : []
   })
   const globalContext = useGlobalTradingContext()
-  const { showTokenModal, submitApiToken, loginWithDeriv } = useDerivAuth()
+  const { showTokenModal, submitApiToken, loginWithDeriv, loginWithDerivLegacy } = useDerivAuth()
 
   // Wrapper to ensure OAuth login is properly triggered
   const handleOAuthLogin = () => {
@@ -774,6 +774,7 @@ export default function DerivAnalysisApp() {
         open={showTokenModal}
         onSubmit={submitApiToken}
         onOAuthLogin={handleOAuthLogin}
+        onLegacyOAuthLogin={loginWithDerivLegacy}
         theme={theme}
       />
     </div>

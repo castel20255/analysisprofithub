@@ -5,18 +5,18 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Key, ExternalLink, LogIn } from "lucide-react"
+import { Key, ExternalLink, LogIn, Clock } from "lucide-react"
 
 interface ApiTokenModalProps {
   open: boolean
   onSubmit: (token: string) => void
   onOAuthLogin?: () => void
+  onLegacyOAuthLogin?: () => void
   theme?: "light" | "dark"
 }
 
-export function ApiTokenModal({ open, onSubmit, onOAuthLogin, theme = "dark" }: ApiTokenModalProps) {
+export function ApiTokenModal({ open, onSubmit, onOAuthLogin, onLegacyOAuthLogin, theme = "dark" }: ApiTokenModalProps) {
   const [tokenInput, setTokenInput] = useState("")
-  const [loginMethod, setLoginMethod] = useState<"oauth" | "token">("oauth")
 
   const handleSubmit = () => {
     if (tokenInput.trim().length < 10) {
@@ -46,6 +46,26 @@ export function ApiTokenModal({ open, onSubmit, onOAuthLogin, theme = "dark" }: 
     }
   }
 
+  const handleLegacyOAuthClick = () => {
+    console.log("[v0] Legacy OAuth login button clicked (App ID: 110211)")
+    if (typeof window !== "undefined" && window.location.hostname.includes("vusercontent.net")) {
+      alert("OAuth login is not available in v0's preview environment.")
+      return
+    }
+    
+    if (onLegacyOAuthLogin) {
+      try {
+        onLegacyOAuthLogin()
+      } catch (error) {
+        console.error("[v0] Legacy OAuth login error:", error)
+        alert(`Legacy OAuth login failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+    } else if (onOAuthLogin) {
+      // Fallback to standard if no legacy handler provided
+      onOAuthLogin()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
@@ -61,56 +81,60 @@ export function ApiTokenModal({ open, onSubmit, onOAuthLogin, theme = "dark" }: 
             </div>
           </DialogTitle>
           <DialogDescription className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>
-            Choose your preferred authentication method to connect to the Deriv trading platform using the official Deriv API.
+            Choose your preferred authentication method to connect to the Deriv trading platform.
           </DialogDescription>
         </DialogHeader>
 
-        {/* OAuth Login Option */}
+        {/* OAuth Login Option - Modern */}
         <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-green-500/10 border-green-500/30" : "bg-green-50 border-green-200"}`}>
           <div className="flex items-center justify-between mb-2">
             <h3 className={`font-semibold ${theme === "dark" ? "text-green-400" : "text-green-700"}`}>
-              OAuth 2.0 Login (Recommended)
+              Deriv Login (Recommended)
             </h3>
             <span className={`text-xs px-2 py-1 rounded ${theme === "dark" ? "bg-green-500/30 text-green-300" : "bg-green-200 text-green-800"}`}>
               Secure
             </span>
           </div>
           <p className={`text-sm mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            Use your Deriv account credentials directly. No API token management needed.
+            Log in with your Deriv account. Quick, secure, and no API token needed.
           </p>
           <Button
             onClick={handleOAuthClick}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2"
           >
             <LogIn className="w-4 h-4 mr-2" />
-            Login with Deriv OAuth
+            Login with Deriv
           </Button>
-          <div className={`text-xs p-2 rounded mt-2 ${theme === "dark" ? "bg-blue-500/20 border border-blue-500/30 text-blue-300" : "bg-blue-50 border border-blue-200 text-blue-700"}`}>
-            <p className="font-semibold mb-1">First-time setup required:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Log in to Deriv</li>
-              <li>Go to Settings → API Tokens → OAuth Apps</li>
-              <li>Edit app <code className="bg-slate-800 px-1 rounded text-cyan-400">33tdJCamBVncjRj9m3WFe</code></li>
-              <li>Add this callback URL to "Redirect URIs":</li>
-            </ol>
-            <code className={`block p-1 rounded mt-1 break-all text-[9px] font-mono ${
-              theme === "dark" ? "bg-slate-900 text-cyan-300" : "bg-slate-100 text-cyan-600"
-            }`}>
-              {typeof window !== 'undefined' && window.location.origin}
-            </code>
-            <a
-              href="https://app.deriv.com/account/api-token"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-block mt-2 font-medium ${theme === "dark" ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
-            >
-              Go to Deriv OAuth Settings →
-            </a>
+        </div>
+
+        {/* Legacy Login Option */}
+        <div className={`p-3 rounded-lg border ${theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className={`font-semibold text-sm ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
+              Legacy Login (App ID: 110211)
+            </h3>
+            <span className={`text-xs px-2 py-1 rounded ${theme === "dark" ? "bg-blue-500/30 text-blue-300" : "bg-blue-200 text-blue-800"}`}>
+              <Clock className="w-3 h-3 inline mr-1" />
+              Legacy
+            </span>
           </div>
+          <p className={`text-xs mb-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            For users with existing legacy app connections. Uses App ID 110211.
+          </p>
+          <Button
+            onClick={handleLegacyOAuthClick}
+            variant="outline"
+            className={`w-full font-semibold py-2 ${theme === "dark" 
+              ? "border-blue-500/50 text-blue-300 hover:bg-blue-500/20" 
+              : "border-blue-300 text-blue-700 hover:bg-blue-50"}`}
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Login with Legacy App
+          </Button>
         </div>
 
         {/* Divider */}
-        <div className="flex items-center gap-2 my-4">
+        <div className="flex items-center gap-2 my-2">
           <div className={`flex-1 h-px ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
           <span className={`text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`}>OR</span>
           <div className={`flex-1 h-px ${theme === "dark" ? "bg-gray-700" : "bg-gray-300"}`} />
