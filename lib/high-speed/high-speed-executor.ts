@@ -45,9 +45,9 @@ export class HighSpeedExecutor {
             }
 
             const proposal = await this.manager.sendAndWait(proposalReq)
-
-            if (proposal.error) {
-                throw new Error(proposal.error.message)
+            if (!proposal?.proposal?.id) {
+                console.error("[v0] Invalid proposal response:", proposal)
+                throw new Error("Invalid proposal response: missing proposal id")
             }
 
             // 2. Buy
@@ -57,7 +57,6 @@ export class HighSpeedExecutor {
             }
 
             const buyRes = await this.manager.sendAndWait(buyReq)
-
             if (buyRes.error) {
                 throw new Error(buyRes.error.message)
             }

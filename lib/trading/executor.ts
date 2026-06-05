@@ -50,6 +50,10 @@ export class TradeExecutor {
 
     try {
       const response = await this.connector.sendAndWait(proposal, "proposal", 4000)
+      if (!response?.proposal?.id) {
+        console.error("[v0] Invalid proposal response:", response)
+        throw new Error("Invalid proposal response: missing proposal id")
+      }
       return response.proposal
     } catch (error) {
       console.error("[v0] Proposal failed:", error)
@@ -58,6 +62,10 @@ export class TradeExecutor {
   }
 
   async buyContract(proposalId: string, price: number): Promise<any> {
+    if (!proposalId) {
+      throw new Error("Cannot buy contract: proposal id is missing")
+    }
+
     const buyRequest = {
       buy: proposalId,
       price: price,
@@ -76,6 +84,9 @@ export class TradeExecutor {
     try {
       // Step 1: Get proposal
       const proposal = await this.executeProposal(config)
+      if (!proposal?.id) {
+        throw new Error("Invalid proposal returned from proposal request")
+      }
 
       // Step 2: Buy contract
       const buy = await this.buyContract(proposal.id, proposal.ask_price)
