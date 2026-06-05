@@ -56,6 +56,7 @@ export class DerivWebSocketManager {
   private accessToken: string | null = null
   private currentAccountId: string | null = null
   private currentEndpoint: "public" | "demo" | "real" = "public"
+  private isOtpConnection = false
   
   // Known robust precision fallbacks for synthetic indices (if API metadata is delayed)
   // Pip sizes = number of decimal places in the price quote.
@@ -112,6 +113,15 @@ export class DerivWebSocketManager {
 
   public isAuthorized = false
   private readonly appId = DERIV_CONFIG.APP_ID
+  private getActiveAppId(): string {
+    if (typeof window !== "undefined") {
+      const flow = localStorage.getItem("oauth_flow_type")
+      if (flow === "legacy") {
+        return "110211"
+      }
+    }
+    return DERIV_CONFIG.APP_ID
+  }
   private currentWsUrl: string = DERIV_API.WEBSOCKET
 
   private constructor() { }
@@ -134,7 +144,13 @@ export class DerivWebSocketManager {
   // ─── Connection ────────────────────────────────────────────────────────────
 
   public async connect(url?: string, force = false): Promise<void> {
-    const targetUrl = url || this.currentWsUrl
+    let targetUrl = url || this.currentWsUrl
+
+    // If targetUrl is the public websocket base without app_id, append it dynamically
+    if (targetUrl === "wss://api.derivws.com/trading/v1/options/ws/public" || 
+        targetUrl === "wss://api.derivws.com/trading/v1/options/ws/public/") {
+      targetUrl = `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${this.getActiveAppId()}`
+    }
 
     if (!force && this.ws) {
       const state = this.ws.readyState
@@ -267,7 +283,7 @@ export class DerivWebSocketManager {
     const url = `${DERIV_API.REST_BASE}${path}`
     const headers = new Headers(options.headers)
     headers.set("Authorization", `Bearer ${this.accessToken}`)
-    headers.set("Deriv-App-ID", this.appId)
+    headers.set("Deriv-App-ID", this.getActiveAppId())
     
     const hasBody = options.body !== undefined && options.body !== null
     if (hasBody && !headers.has("Content-Type")) {
@@ -422,7 +438,17 @@ export class DerivWebSocketManager {
     // Skip the REST handshake to avoid infinite loop or redundant calls.
     if (this.ws?.url && this.ws.url.includes("otp=")) {
       this.isAuthorized = true
+      this.isOtpConnection = true
       console.log("[v0] Connection is already authenticated via OTP URL.")
+      return
+    }
+
+    const oauthFlowType = typeof window !== "undefined" ? localStorage.getItem("oauth_flow_type") : null
+
+    if (oauthFlowType !== "modern") {
+      console.log(`[v0] ${oauthFlowType || 'Default'} flow detected. Skipping REST handshake and going straight to direct WebSocket authorize.`)
+      this.isOtpConnection = false
+      await this.authorizeDirectly(token)
       return
     }
 
@@ -453,6 +479,7 @@ export class DerivWebSocketManager {
           this.currentEndpoint = targetAccount.account_type === 'demo' ? 'demo' : 'real'
           
           await this.disconnect()
+          this.isOtpConnection = true
           // OTP URL is a complete wss:// URL — connect to it directly.
           await this.connect(otpUrl, true)
           
@@ -487,10 +514,45 @@ export class DerivWebSocketManager {
       }
       throw new Error("No suitable options accounts found for this token.")
     } catch (e) {
-      console.error("[v0] Authorization failed:", e)
-      this.log("error", `Authorization failed: ${e instanceof Error ? e.message : String(e)}`)
+      console.warn("[v0] Modern auth failed. Falling back to direct WebSocket authorize...", e)
+      this.log("warning", `Modern auth failed: ${e instanceof Error ? e.message : String(e)}. Falling back to direct WebSocket authorize.`)
+      this.isOtpConnection = false
+      await this.authorizeDirectly(token)
+    }
+  }
+
+  private async authorizeDirectly(token: string): Promise<void> {
+    try {
+      const currentAppId = this.getActiveAppId()
+      const publicUrl = `wss://api.derivws.com/trading/v1/options/ws/public?app_id=${currentAppId}`
+      
+      if (!this.isConnected() || (this.ws?.url && this.ws.url.includes("otp="))) {
+        await this.disconnect()
+        await this.connect(publicUrl, true)
+      }
+      
+      console.log(`[v0] Sending authorize message over WebSocket with App ID ${currentAppId}...`)
+      const response = await this.sendAndWait({ authorize: token }, 20000)
+      
+      if (response.error) {
+        throw response.error
+      }
+      
+      this.isAuthorized = true
+      const { authorize } = response
+      this.currentAccountId = authorize.loginid
+      
+      try {
+        localStorage.setItem('deriv_active_loginid', authorize.loginid || "")
+      } catch { /* ignore */ }
+      
+      this.emit("authorize", response)
+      console.log(`[v0] ✅ Successfully authorized via fallback WebSocket for ${this.currentAccountId}`)
+    } catch (fallbackError: any) {
+      console.error("[v0] Fallback WebSocket authorize failed:", fallbackError)
+      this.log("error", `Fallback authorize failed: ${fallbackError?.message || String(fallbackError)}`)
       this.isAuthorized = false
-      throw e
+      throw fallbackError
     }
   }
 
@@ -524,7 +586,7 @@ export class DerivWebSocketManager {
     // If we are using modern V1 REST + OTP, always fetch a FRESH OTP URL for the
     // already-selected account. Re-using a stale OTP URL is the primary cause of
     // reconnect failures; the canonical reference implementation requires this.
-    if (this.accessToken && this.currentAccountId) {
+    if (this.isOtpConnection && this.accessToken && this.currentAccountId) {
       this.messageQueue = [] // Prevent stale messages from previous connection
       // Reference delays: [500, 1000, 2000, 4000, 8000]
       const otpDelays = [500, 1000, 2000, 4000, 8000]

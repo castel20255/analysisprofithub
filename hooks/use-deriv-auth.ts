@@ -406,6 +406,7 @@ export function useDerivAuth() {
       return
     }
 
+    localStorage.setItem("oauth_flow_type", "manual")
     setIsInitializing(true)
     localStorage.setItem("deriv_api_token", apiToken)
     setToken(apiToken)
@@ -428,6 +429,7 @@ export function useDerivAuth() {
     if (typeof window === "undefined") return
 
     try {
+      localStorage.setItem("oauth_flow_type", "modern")
       // 1. Generate a random code_verifier
       const array = crypto.getRandomValues(new Uint8Array(64));
       const codeVerifier = Array.from(array)
@@ -483,6 +485,7 @@ export function useDerivAuth() {
     if (typeof window === "undefined") return
 
     try {
+      localStorage.setItem("oauth_flow_type", "legacy")
       const params = new URLSearchParams({
         app_id: DERIV_LEGACY_APP_ID,
       })
