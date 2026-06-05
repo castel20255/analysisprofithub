@@ -47,7 +47,7 @@ function getGradient(type: string, currency: string) {
 }
 
 export default function AccountDetails({ activeLoginId, balance, accountType, accounts }: AccountDetailsProps) {
-    const { isAuthorized, derivAPI } = useDerivAPI()
+    const { isAuthorized } = useDerivAPI()
     const [username, setUsername] = useState("")
     const [isEditingUsername, setIsEditingUsername] = useState(false)
     const [tempUsername, setTempUsername] = useState("")
@@ -87,7 +87,7 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
     }
 
     const fetchAllBalances = async () => {
-        if (!isAuthorized || !derivAPI || refreshing) return
+        if (!isAuthorized || refreshing) return
         setRefreshing(true)
         try {
             const results: Record<string, number> = {}

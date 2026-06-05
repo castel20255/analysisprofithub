@@ -126,7 +126,15 @@ export class DerivWebSocketManager {
 
   public isAuthorized = false
   private readonly appId = DERIV_CONFIG.APP_ID
-  private getActiveAppId(): string {
+  /**
+   * Returns the correct app_id for the WebSocket connection.
+   * - `legacyOnly=true` → always returns the numeric legacy ID (110211), used
+   *   for the V3 ws.derivws.com endpoint which requires a numeric app_id.
+   * - `legacyOnly=false` (default) → returns numeric ID for legacy/manual flows,
+   *   or the modern string ID for the Options V1 endpoint.
+   */
+  private getActiveAppId(legacyOnly = false): string {
+    if (legacyOnly) return "110211"
     if (typeof window !== "undefined") {
       const flow = localStorage.getItem("oauth_flow_type")
       if (flow === "legacy" || flow === "manual") {
@@ -562,31 +570,33 @@ export class DerivWebSocketManager {
 
   private async authorizeDirectly(token: string): Promise<void> {
     try {
-      const currentAppId = this.getActiveAppId()
-      // Connect to standard/legacy v3 WebSocket for direct token authorization
-      const publicUrl = `${DERIV_API.WEBSOCKET_LEGACY}?app_id=${currentAppId}`
-      
+      // IMPORTANT: authorizeDirectly ALWAYS connects to the legacy V3 WebSocket.
+      // That endpoint requires a NUMERIC app_id. The string OAuth ID
+      // (33tdJCamBVncjRj9m3WFe) will cause InputValidationFailed.
+      const legacyAppId = this.getActiveAppId(true) // legacyOnly=true → always "110211"
+      const publicUrl = `${DERIV_API.WEBSOCKET_LEGACY}?app_id=${legacyAppId}`
+
       if (!this.isConnected() || (this.ws?.url && (this.ws.url.includes("otp=") || this.ws.url.includes("trading/v1/options")))) {
         // Intentional disconnect — suppress auto-reconnect
         await this.disconnect()
         await this.connect(publicUrl, true)
       }
-      
-      console.log(`[v0] Sending authorize message over WebSocket with App ID ${currentAppId}...`)
+
+      console.log(`[v0] Sending authorize message over WebSocket with App ID ${legacyAppId}...`)
       const response = await this.sendAndWait({ authorize: token }, 20000)
-      
+
       if (response.error) {
         throw response.error
       }
-      
+
       this.isAuthorized = true
       const { authorize } = response
       this.currentAccountId = authorize.loginid
-      
+
       try {
         localStorage.setItem('deriv_active_loginid', authorize.loginid || "")
       } catch { /* ignore */ }
-      
+
       this.emit("authorize", response)
       console.log(`[v0] ✅ Successfully authorized via fallback WebSocket for ${this.currentAccountId}`)
     } catch (fallbackError: any) {

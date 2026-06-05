@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function PATCH(
     request: NextRequest,
-    context: { params: { loginId: string } }
+    context: { params: Promise<{ loginId: string }> }
 ) {
     try {
         const { loginId } = await context.params
@@ -41,8 +41,8 @@ export async function PATCH(
 }
 
 export async function GET(
-    request: NextRequest,
-    context: { params: { loginId: string } }
+    _request: NextRequest,
+    context: { params: Promise<{ loginId: string }> }
 ) {
     try {
         const { loginId } = await context.params

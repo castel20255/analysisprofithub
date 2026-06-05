@@ -84,11 +84,20 @@ export function useDerivAuth() {
   }, [activeLoginId])
 
   // 1. Stable listener for auth and balance updates
+  // NOTE: This effect runs only ONCE on mount (empty deps) so handlers stay
+  // registered across all state changes. isInitializing is read via a ref to
+  // avoid stale-closure issues without re-mounting the effect.
+  const isInitializingRef = useRef(true)
+  useEffect(() => {
+    isInitializingRef.current = isInitializing
+  }, [isInitializing])
+
   useEffect(() => {
     const handleAuthMessages = (data: any) => {
       console.log("[v0] 📡 Auth hook message:", data.msg_type)
       if (data.msg_type === "authorize") {
         setIsInitializing(false)
+        isInitializingRef.current = false
         if (data.error) {
           console.error("[v0] ❌ Auth error:", data.error.message)
           if (data.error.code === "InvalidToken" || data.error.code === "AuthorizationRequired") {
@@ -113,6 +122,7 @@ export function useDerivAuth() {
           console.log("[v0] ✅ Authorization successful for:", authorize.loginid)
           setIsLoggedIn(true)
           setActiveLoginId(authorize.loginid)
+          activeLoginIdRef.current = authorize.loginid
           setAccountCode(authorize.loginid)
           setAccountType(authorize.is_virtual ? "Demo" : "Real")
 
@@ -127,11 +137,11 @@ export function useDerivAuth() {
             const lastBalancesMap = getStored("deriv_last_balances", {})
             const formatted = authorize.account_list.map((acc: any) => {
               const apiBalance = Number(acc.balance) || 0
-              // Always trust the active account's new balance. For inactive accounts, 
+              // Always trust the active account's new balance. For inactive accounts,
               // if API returns 0, try to use the last known good balance to avoid wiping it.
-              const finalBalance = (acc.loginid === authorize.loginid || apiBalance > 0) 
-                 ? apiBalance 
-                 : (lastBalancesMap[acc.loginid]?.balance || 0)
+              const finalBalance = (acc.loginid === authorize.loginid || apiBalance > 0)
+                ? apiBalance
+                : (lastBalancesMap[acc.loginid]?.balance || 0)
 
               return {
                 id: acc.loginid,
@@ -140,14 +150,14 @@ export function useDerivAuth() {
                 balance: finalBalance,
               }
             })
-            
-            // Cache these balanced
+
+            // Cache balances for persistence across page refreshes
             const balanceMap: Record<string, { balance: number, currency: string }> = {}
             formatted.forEach((f: Account) => {
               balanceMap[f.id] = { balance: f.balance, currency: f.currency }
             })
             localStorage.setItem("deriv_last_balances", JSON.stringify(balanceMap))
-            
+
             setAccounts(formatted)
           }
 
@@ -162,7 +172,7 @@ export function useDerivAuth() {
       if (data.msg_type === "balance" && data.balance) {
         const msgLoginId = data.balance.loginid || activeLoginIdRef.current
         console.log("[v0] 💰 Balance update:", data.balance.balance, "for", msgLoginId)
-        
+
         if (msgLoginId === activeLoginIdRef.current) {
           setBalance({
             amount: Number(data.balance.balance),
@@ -173,44 +183,52 @@ export function useDerivAuth() {
         setAccounts(prev => {
           const next = prev.map(acc => {
             if (acc.id === msgLoginId) {
-                return { ...acc, balance: Number(data.balance.balance) }
+              return { ...acc, balance: Number(data.balance.balance) }
             }
             return acc
           })
-          
-          // Persistence
+
+          // Persist updated balances
           const balanceMap = getStored("deriv_last_balances", {})
           next.forEach(n => {
             balanceMap[n.id] = { balance: n.balance, currency: n.currency }
           })
           localStorage.setItem("deriv_last_balances", JSON.stringify(balanceMap))
-          
+
           return next
         })
       }
     }
 
+    // ── Register listeners (was missing — this was the root cause of missing balances) ──
+    manager.on("authorize", handleAuthMessages)
+    manager.on("balance", handleAuthMessages)
+
     const statusHandler = (status: string) => {
       if (status === "disconnected" && !localStorage.getItem("deriv_api_token")) {
         setIsInitializing(false)
+        isInitializingRef.current = false
       }
     }
     const unbindStatus = manager.onConnectionStatus(statusHandler)
 
-    // Safety Timeout: Force initialization to end after 10 seconds to prevent "stuck" screen
-    const safetyTimeout = setTimeout(() => {
-      if (isInitializing) {
-        console.warn("[v0] 🕒 Authorization safety timeout reached. Forcing check.")
-        setIsInitializing(false)
-      }
-    }, 10000)
-
     return () => {
-      clearTimeout(safetyTimeout)
       manager.off("authorize", handleAuthMessages)
       manager.off("balance", handleAuthMessages)
       unbindStatus()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 2. Safety timeout — separate effect so it can re-arm when isInitializing resets to true
+  useEffect(() => {
+    if (!isInitializing) return
+    const safetyTimeout = setTimeout(() => {
+      console.warn("[v0] 🕒 Authorization safety timeout reached. Forcing end of initialization.")
+      setIsInitializing(false)
+      isInitializingRef.current = false
+    }, 12000)
+    return () => clearTimeout(safetyTimeout)
   }, [isInitializing])
 
   useEffect(() => {

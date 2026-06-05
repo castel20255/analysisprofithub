@@ -129,7 +129,12 @@ export default function AccountPage() {
 
                     <div className="mt-0 focus-visible:outline-none animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <TabsContent value="details" className="mt-0 focus-visible:outline-none">
-                            <AccountDetails theme="dark" />
+                            <AccountDetails
+                                activeLoginId={activeLoginId}
+                                balance={null}
+                                accountType={accountType}
+                                accounts={[]}
+                            />
                         </TabsContent>
 
                         <TabsContent value="statement" className="mt-0 focus-visible:outline-none">
