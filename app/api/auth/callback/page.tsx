@@ -101,7 +101,7 @@ export default function AuthCallbackPage() {
       <div className="relative z-10 flex flex-col items-center">
         <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-8" />
         <h2 className="text-3xl font-light tracking-widest text-primary mb-2 animate-pulse">
-          PROFIT<span className="font-bold">HUB</span>
+          ANALYSIS<span className="font-bold">TOOLPRO</span>
         </h2>
         <p className="text-muted-foreground font-mono text-sm tracking-tighter uppercase opacity-70">
           {status}

@@ -36,7 +36,7 @@ export default function AdminAccountPage() {
                     <div className="space-y-4">
                         {[
                             { label: "Full Name", value: "Root Admin", icon: User },
-                            { label: "Email Address", value: "admin@profithub.com", icon: Mail },
+                            { label: "Email Address", value: "admin@analysistoolpro.com", icon: Mail },
                             { label: "Phone Number", value: "+1 234 567 890", icon: Phone },
                             { label: "Location", value: "Global Operations", icon: MapPin },
                         ].map((item, i) => (

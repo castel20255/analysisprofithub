@@ -138,7 +138,7 @@ export function HelpTab({ theme = "dark" }: HelpTabProps) {
       description: "Learn the basics",
       icon: <BookOpen className="w-5 h-5" />,
       content: `
-        Welcome to analysisprofithub! Here's how to get started:
+        Welcome to analysistoolpro! Here's how to get started:
         
         1. Connect Your API: Go to the top of the page and enter your Deriv API token
         2. Select a Market: Choose from available volatility indices
@@ -154,7 +154,7 @@ export function HelpTab({ theme = "dark" }: HelpTabProps) {
       description: "Signal types and meanings",
       icon: <Zap className="w-5 h-5" />,
       content: `
-        analysisprofithub generates multiple signal types:
+        analysistoolpro generates multiple signal types:
         
         TRADE NOW (Green): Market conditions are optimal for trading
         WAIT (Blue): Market is building power, watch for TRADE NOW signal

@@ -16,7 +16,7 @@ interface StoredMarketData {
 }
 
 export class MarketDataPersistence {
-  private static DB_NAME = "ProfitHubDB"
+  private static DB_NAME = "AnalysisToolProDB"
   private static DB_VERSION = 1
   private static STORE_NAME = "marketData"
 

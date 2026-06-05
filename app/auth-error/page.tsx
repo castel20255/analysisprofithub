@@ -26,10 +26,10 @@ function AuthErrorContent() {
             <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
               <li>Log in to your Deriv account</li>
               <li>Go to Settings → API Tokens → OAuth Apps</li>
-              <li>Edit your OAuth app (32EtOUHbr4zUOcHKwjgwj)</li>
+              <li>Edit your OAuth app (33tdJCamBVncjRj9m3WFe)</li>
               <li>Add your app's callback URL to "Redirect URIs":</li>
               <code className="block bg-slate-900 p-2 rounded mt-2 text-cyan-400 break-all text-[10px]">
-                {typeof window !== 'undefined' && `${window.location.origin}/api/auth/oauth-callback`}
+                {typeof window !== 'undefined' && window.location.origin}
               </code>
             </ol>
           </div>

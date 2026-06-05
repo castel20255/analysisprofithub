@@ -49,7 +49,7 @@ export const UnifiedTradingDashboard: React.FC = () => {
             <span className="text-2xl font-bold text-white">P</span>
           </div>
           <div>
-            <h1 className="text-3xl font-bold glow-text-blue">analysisprofithub</h1>
+            <h1 className="text-3xl font-bold glow-text-blue">analysistoolpro</h1>
             <p className="text-sm text-text-tertiary">Advanced Trading Engine</p>
           </div>
         </div>

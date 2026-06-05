@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        client_id: process.env.NEXT_PUBLIC_DERIV_OAUTH_CLIENT_ID || '32EtOUHbr4zUOcHKwjgwj',
-        redirect_uri: `${request.nextUrl.origin}/api/auth/oauth-callback`,
+        client_id: process.env.NEXT_PUBLIC_DERIV_OAUTH_CLIENT_ID || '33tdJCamBVncjRj9m3WFe',
+        redirect_uri: `${request.nextUrl.origin}`,
         code_verifier: request.cookies.get('pkce_code_verifier')?.value || '',
       }).toString(),
     })

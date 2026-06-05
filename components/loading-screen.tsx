@@ -116,7 +116,7 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
                 animate={{ y: 0, opacity: 1 }}
                 className="text-2xl sm:text-5xl font-black italic tracking-tighter text-white uppercase"
               >
-                ANALYSIS<span className="text-blue-500 text-glow">PROFITHUB</span>
+                ANALYSIS<span className="text-blue-500 text-glow">TOOLPRO</span>
               </motion.h1>
               <motion.div
                 initial={{ width: 0 }}

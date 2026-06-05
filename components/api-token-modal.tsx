@@ -90,13 +90,13 @@ export function ApiTokenModal({ open, onSubmit, onOAuthLogin, theme = "dark" }: 
             <ol className="list-decimal list-inside space-y-1">
               <li>Log in to Deriv</li>
               <li>Go to Settings → API Tokens → OAuth Apps</li>
-              <li>Edit app <code className="bg-slate-800 px-1 rounded text-cyan-400">32EtOUHbr4zUOcHKwjgwj</code></li>
+              <li>Edit app <code className="bg-slate-800 px-1 rounded text-cyan-400">33tdJCamBVncjRj9m3WFe</code></li>
               <li>Add this callback URL to "Redirect URIs":</li>
             </ol>
             <code className={`block p-1 rounded mt-1 break-all text-[9px] font-mono ${
               theme === "dark" ? "bg-slate-900 text-cyan-300" : "bg-slate-100 text-cyan-600"
             }`}>
-              {typeof window !== 'undefined' && `${window.location.origin}/api/auth/oauth-callback`}
+              {typeof window !== 'undefined' && window.location.origin}
             </code>
             <a
               href="https://app.deriv.com/account/api-token"

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useDerivAPI } from "@/lib/deriv-api-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AccountDetails } from "@/components/account/account-details"
+import AccountDetails from "@/components/account/account-details"
 import { StatementList } from "@/components/account/statement-list"
 import { ProfitReport } from "@/components/account/profit-report"
 import { AccountAnalytics } from "@/components/account/account-analytics"

@@ -195,20 +195,11 @@ export default function DerivAnalysisApp() {
             <div className="mx-auto w-full px-2 sm:px-6 lg:px-8">
               <div className="flex flex-nowrap items-center h-16 sm:h-20 gap-4 sm:gap-6 w-full justify-between overflow-hidden">
 
-                {/* Brand Logo and Text - Clean Modern */}
+                {/* Brand Name Only - Clean Modern */}
                 <div className="flex items-center shrink-0 min-w-[140px] sm:min-w-[200px]">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-black text-sm sm:text-base ${theme === "dark" ? "bg-blue-600 text-white" : "bg-blue-600 text-white"}`}>
-                      A
-                    </div>
-                    <div className="flex flex-col leading-tight">
-                      <h1 className={`text-base sm:text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-                        analysisprofithub
-                      </h1>
-                      <h2 className={`text-[9px] sm:text-[10px] font-medium tracking-wide opacity-60 uppercase ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
-                        Trading
-                      </h2>
-                    </div>
+                  <div className="flex flex-col leading-tight">
+                    <h1 className={`text-base sm:text-lg font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>analysistoolpro</h1>
+                    <h2 className={`text-[9px] sm:text-[10px] font-medium tracking-wide opacity-60 uppercase ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Trading</h2>
                   </div>
                 </div>
 
@@ -746,7 +737,7 @@ export default function DerivAnalysisApp() {
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] sm:text-xs ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
               <div className="flex flex-wrap items-center gap-4">
-                <span className="font-bold text-slate-800 dark:text-gray-400">analysisprofithub © 2026</span>
+                <span className="font-bold text-slate-800 dark:text-gray-400">analysistoolpro © 2026</span>
                 <button onClick={() => setIsDisclaimerOpen(true)} className="hover:text-blue-500 transition-colors">Risk Disclaimer</button>
               </div>
             </div>

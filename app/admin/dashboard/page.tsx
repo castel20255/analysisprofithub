@@ -63,7 +63,7 @@ export default function AdminDashboard() {
       <header className="border-b border-blue-500/20 bg-[#0a0e27]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-            analysisprofithub Admin Panel
+            analysistoolpro Admin Panel
           </h1>
           <Button
             onClick={handleLogout}

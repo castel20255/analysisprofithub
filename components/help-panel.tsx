@@ -342,7 +342,7 @@ export function HelpPanel() {
         </CardHeader>
         <CardContent className="text-gray-400 space-y-3">
           <p>
-            analysisprofithub is a real-time market analysis platform for Deriv trading. It provides advanced statistical
+            analysistoolpro is a real-time market analysis platform for Deriv trading. It provides advanced statistical
             analysis and trading signals based on digit patterns and market trends.
           </p>
           <p className="text-sm">

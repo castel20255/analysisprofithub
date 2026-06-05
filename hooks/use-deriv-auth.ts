@@ -195,16 +195,76 @@ export function useDerivAuth() {
     const searchParams = new URLSearchParams(window.location.search)
     const code = searchParams.get("code")
     const state = searchParams.get("state")
-    const acct1 = searchParams.get("acct1")
-    const token1 = searchParams.get("token1")
 
-    // Standard session check
-    const storedToken = localStorage.getItem("deriv_api_token")
-    if (storedToken && storedToken.length > 10) {
-      connectWithToken(storedToken)
+    const handleRedirectAuth = async () => {
+      try {
+        const storedState = sessionStorage.getItem("oauth_state")
+        const codeVerifier = sessionStorage.getItem("pkce_code_verifier")
+
+        if (!state || state !== storedState) {
+          throw new Error("Invalid state parameter (CSRF protection)")
+        }
+
+        if (!codeVerifier) {
+          throw new Error("Missing code verifier")
+        }
+
+        console.log("[v0] 🔄 Exchanging redirect authorization code for token...")
+        setIsInitializing(true)
+
+        const response = await fetch("/api/auth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code,
+            code_verifier: codeVerifier,
+            redirect_uri: DERIV_REDIRECT_URL,
+            client_id: OAUTH_CLIENT_ID,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error_description || data.error || "Token exchange failed")
+        }
+
+        console.log("[v0] 🔑 Storing retrieved access token...")
+        
+        // Clear PKCE storage
+        sessionStorage.removeItem("oauth_state")
+        sessionStorage.removeItem("pkce_code_verifier")
+
+        // Store token for the app
+        localStorage.setItem("deriv_api_token", data.access_token)
+        setToken(data.access_token)
+        
+        // Clean URL query parameters
+        const url = new URL(window.location.href)
+        url.searchParams.delete("code")
+        url.searchParams.delete("state")
+        window.history.replaceState({}, document.title, url.pathname + url.search)
+
+        // Connect with the new token
+        await connectWithToken(data.access_token)
+      } catch (err: any) {
+        console.error("[v0] ❌ Root redirect auth callback error:", err)
+        alert(`Authentication failed: ${err.message || "Unknown error"}`)
+        setIsInitializing(false)
+      }
+    }
+
+    if (code && state) {
+      handleRedirectAuth()
     } else {
-      console.log("[v0] ℹ️ No session found")
-      setIsInitializing(false)
+      // Standard session check
+      const storedToken = localStorage.getItem("deriv_api_token")
+      if (storedToken && storedToken.length > 10) {
+        connectWithToken(storedToken)
+      } else {
+        console.log("[v0] ℹ️ No session found")
+        setIsInitializing(false)
+      }
     }
   }, [])
 

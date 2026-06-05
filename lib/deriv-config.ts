@@ -14,14 +14,14 @@
  * - Derivatives Base (optional): https://github.com/deriv-com/derivatives
  */
 
-export const DERIV_APP_ID = "32KGABH3pjSMkQ6JTotTG" // Modern Options V1 App ID
-export const OAUTH_CLIENT_ID = "32KGABH3pjSMkQ6JTotTG" // Modern PKCE OAuth Client ID
+export const DERIV_APP_ID = "33tdJCamBVncjRj9m3WFe" // Modern Options V1 App ID
+export const OAUTH_CLIENT_ID = "33tdJCamBVncjRj9m3WFe" // Modern PKCE OAuth Client ID
 
 // Get redirect URL based on environment
 // This must match the PRE-REGISTERED redirect URIs in the Deriv OAuth dashboard (api.deriv.com)
 const getOAuthRedirectUrl = () => {
   const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
-  const productionUrl = "https://analysisprofithub.vercel.app/api/auth/callback"
+  const productionUrl = "https://analysisprofithub.vercel.app"
 
   // 1. If we are in production, strictly return the production URL
   if (isProduction) {
@@ -32,9 +32,9 @@ const getOAuthRedirectUrl = () => {
   if (typeof window !== "undefined") {
     // If we're on localhost but want to force production test
     if (window.location.hostname === "localhost") {
-      return "https://localhost:8443/"
+      return "https://localhost:8443"
     }
-    return `${window.location.origin}/api/auth/callback`
+    return window.location.origin
   }
   
   // 3. Absolute default
