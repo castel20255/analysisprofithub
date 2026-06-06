@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -137,12 +137,67 @@ export function FloatingAIScanner({
   const [error,         setError]         = useState<string | null>(null)
   const abortRef = useRef(false)
 
+  // Dragging and position state
+  const [position, setPosition] = useState({ x: 100, y: 100 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef({ x: 0, y: 0 })
+  const positionStart = useRef({ x: 0, y: 0 })
+
+  // Initialize position to bottom right once window is defined
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPosition({
+        x: window.innerWidth - 440, // 420px width + 20px gap
+        y: window.innerHeight - 660  // 600px height + 60px gap
+      })
+    }
+  }, [])
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return // Left click only
+    const target = e.target as HTMLElement
+    if (target.closest("button") || target.closest("input")) return
+    setIsDragging(true)
+    dragStart.current = { x: e.clientX, y: e.clientY }
+    positionStart.current = { ...position }
+    e.preventDefault()
+  }
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStart.current.x
+      const dy = e.clientY - dragStart.current.y
+      setPosition({
+        x: positionStart.current.x + dx,
+        y: positionStart.current.y + dy
+      })
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isDragging])
+
+  // Filter available symbols to only continuous volatility indices
+  const continuousSymbols = availableSymbols.filter(s => 
+    s.symbol.startsWith("R_") || s.symbol.startsWith("1HZ")
+  )
+
   const toggleMarket   = (sym: string) =>
     setSelected(p => p.includes(sym) ? p.filter(s => s !== sym) : [...p, sym])
   const toggleStrategy = (id: string) =>
     setSelStrats(p => p.includes(id) ? p.filter(s => s !== id) : [...p, id])
 
-  const handleScanAll = () => setSelected(availableSymbols.map(s => s.symbol))
+  const handleScanAll = () => setSelected(continuousSymbols.map(s => s.symbol))
   const handleClear   = () => setSelected([])
 
   const handleScan = useCallback(async () => {
@@ -169,7 +224,7 @@ export function FloatingAIScanner({
     for (let i = 0; i < total; i++) {
       if (abortRef.current) break
       const sym = selected[i]
-      const info = availableSymbols.find(s => s.symbol === sym)
+      const info = continuousSymbols.find(s => s.symbol === sym)
       const displayName = info?.display_name || sym
 
       setProgressLabel(`Scanning ${displayName}…`)
@@ -203,7 +258,10 @@ export function FloatingAIScanner({
   const base = dark ? "bg-gray-900/95 border-purple-500/20 text-white" : "bg-white/95 border-purple-300 text-gray-900"
 
   return (
-    <div className="fixed bottom-6 right-[5.5rem] z-[60]">
+    <div 
+      className="fixed z-[60]"
+      style={!isOpen ? { bottom: "24px", right: "88px" } : { left: `${position.x}px`, top: `${position.y}px` }}
+    >
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
@@ -214,9 +272,22 @@ export function FloatingAIScanner({
           <Brain className="w-7 h-7 text-white" />
         </button>
       ) : (
-        <Card className={`w-[420px] shadow-2xl border ${base} backdrop-blur-xl`}>
+        <Card 
+          className={`flex flex-col shadow-2xl border ${base} backdrop-blur-xl`}
+          style={{
+            width: "420px",
+            height: isMinimized ? "auto" : "600px",
+            minWidth: "320px",
+            minHeight: isMinimized ? "auto" : "300px",
+            resize: isMinimized ? "none" : "both",
+            overflow: "hidden"
+          }}
+        >
           {/* ── Header ── */}
-          <div className={`px-4 py-3 flex items-center justify-between border-b ${dark ? "border-white/5 bg-gradient-to-r from-violet-600/15 to-indigo-600/10" : "border-gray-200 bg-purple-50"}`}>
+          <div 
+            onMouseDown={handleMouseDown}
+            className={`px-4 py-3 flex items-center justify-between border-b cursor-move select-none ${dark ? "border-white/5 bg-gradient-to-r from-violet-600/15 to-indigo-600/10" : "border-gray-200 bg-purple-50"}`}
+          >
             <div className="flex items-center gap-2">
               <Brain className={`w-4 h-4 ${dark ? "text-violet-400" : "text-violet-600"}`} />
               <span className="text-xs font-black uppercase tracking-widest">AI Market Scanner</span>
@@ -237,7 +308,7 @@ export function FloatingAIScanner({
           </div>
 
           {!isMinimized && (
-            <div className="p-4 space-y-4 max-h-[78vh] overflow-y-auto">
+            <div className="p-4 space-y-4 flex-1 overflow-y-auto">
 
               {/* ── Strategy chips ── */}
               <div className="space-y-2">
@@ -268,7 +339,7 @@ export function FloatingAIScanner({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className={`text-[10px] font-black uppercase tracking-widest ${dark ? "text-slate-500" : "text-gray-500"}`}>
-                    Markets <span className={`ml-1 ${dark ? "text-violet-400" : "text-violet-600"}`}>({selected.length}/{availableSymbols.length})</span>
+                    Markets <span className={`ml-1 ${dark ? "text-violet-400" : "text-violet-600"}`}>({selected.length}/{continuousSymbols.length})</span>
                   </p>
                   <div className="flex gap-2">
                     <button onClick={handleScanAll} className={`text-[10px] font-bold ${dark ? "text-indigo-400 hover:text-indigo-300" : "text-indigo-600 hover:text-indigo-700"}`}>All</button>
@@ -278,7 +349,7 @@ export function FloatingAIScanner({
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                  {availableSymbols.map(m => {
+                  {continuousSymbols.map(m => {
                     const active = selected.includes(m.symbol)
                     return (
                       <button

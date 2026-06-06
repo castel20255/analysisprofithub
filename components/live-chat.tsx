@@ -2,6 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { MessageCircle, X, Send, User, ChevronDown, Loader2, Paperclip, FileText, ImageIcon, XCircle } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
 
 interface Reply { adminMsg: string; ts: number }
 interface Attachment { name: string; type: string; data: string }
@@ -165,127 +171,135 @@ export function LiveChat() {
                 onChange={handleFileChange}
             />
 
-            {/* Floating Bubble */}
-            <button
-                onClick={() => { setOpen(!open); setHasNewAdminReply(false) }}
-                className="fixed bottom-6 right-6 z-50 w-11 h-11 bg-blue-600 hover:bg-blue-500 rounded-xl shadow-2xl shadow-blue-500/40 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-            >
-                {open ? <X className="h-5 w-5 text-white" /> : <MessageCircle className="h-5 w-5 text-white" />}
-                {!open && hasNewAdminReply && (
-                    <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#050505] animate-pulse" />
-                )}
-            </button>
-
-            {/* Chat Window */}
-            {open && (
-                <div className="fixed bottom-24 right-6 z-50 w-80 shadow-2xl rounded-3xl overflow-hidden border border-white/10 bg-[#0a0a0a] animate-in slide-in-from-bottom-4 fade-in duration-300">
-                    {/* Header */}
-                    <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                                <MessageCircle className="h-4 w-4 text-white" />
-                            </div>
-                            <div>
-                                <p className="text-sm font-black text-white">Live Support</p>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                    <p className="text-[10px] text-blue-100">Admin Online</p>
+            <DropdownMenu open={open} onOpenChange={(val) => { setOpen(val); if (!val) setHasNewAdminReply(false); }}>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative h-8 w-8 rounded-lg transition-all bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                        title="Live Chat Support"
+                    >
+                        <MessageCircle className="h-4.5 w-4.5" />
+                        {hasNewAdminReply && (
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border border-slate-900 animate-pulse" />
+                        )}
+                    </Button>
+                </DropdownMenuTrigger>
+                
+                <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="w-80 p-0 rounded-3xl overflow-hidden border border-white/10 bg-[#0a0a0a] shadow-2xl z-[150]"
+                >
+                    <div onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                                    <MessageCircle className="h-4 w-4 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-white">Live Support</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        <p className="text-[10px] text-blue-100">Admin Online</p>
+                                    </div>
                                 </div>
                             </div>
+                            <button onClick={() => setOpen(false)} className="text-blue-200 hover:text-white transition-colors">
+                                <ChevronDown className="h-5 w-5" />
+                            </button>
                         </div>
-                        <button onClick={() => setOpen(false)} className="text-blue-200 hover:text-white transition-colors">
-                            <ChevronDown className="h-5 w-5" />
-                        </button>
-                    </div>
 
-                    {/* Name if empty */}
-                    {!messages.length && !name && (
-                        <div className="px-5 py-3 bg-blue-500/5 border-b border-white/5">
-                            <input
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                placeholder="Your name (optional)..."
-                                className="w-full bg-transparent text-xs text-white placeholder:text-gray-600 focus:outline-none"
-                            />
-                        </div>
-                    )}
-
-                    {/* Messages */}
-                    <div className="p-4 space-y-4 overflow-y-auto max-h-64 custom-scrollbar">
-                        {messages.length === 0 ? (
-                            <div className="text-center py-8">
-                                <MessageCircle className="h-8 w-8 text-gray-700 mx-auto mb-2" />
-                                <p className="text-xs text-gray-600">👋 Hi! How can we help?</p>
-                                <p className="text-[10px] text-gray-700 mt-1">Send a message or attach a file. Our team will reply.</p>
+                        {/* Name if empty */}
+                        {!messages.length && !name && (
+                            <div className="px-5 py-3 bg-blue-500/5 border-b border-white/5">
+                                <input
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    placeholder="Your name (optional)..."
+                                    className="w-full bg-transparent text-xs text-white placeholder:text-gray-600 focus:outline-none"
+                                />
                             </div>
-                        ) : messages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.fromAdmin ? "justify-start" : "justify-end"} gap-2`}>
-                                {msg.fromAdmin && (
-                                    <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                                        <span className="text-[9px] font-black text-white">A</span>
-                                    </div>
-                                )}
-                                <div className={`max-w-[80%] space-y-2 ${msg.fromAdmin ? "" : "items-end flex flex-col"}`}>
-                                    {/* Attachments */}
-                                    {msg.attachments?.map((att, j) => (
-                                        <AttachmentPreview key={j} att={att} />
-                                    ))}
-                                    {/* Text */}
-                                    {msg.message && (
-                                        <div className={`rounded-2xl px-3 py-2 text-xs ${msg.fromAdmin
-                                            ? "bg-white/5 border border-white/5 text-gray-200 rounded-tl-none"
-                                            : "bg-blue-600 text-white rounded-tr-none"
-                                            }`}>
-                                            {msg.message}
+                        )}
+
+                        {/* Messages */}
+                        <div className="p-4 space-y-4 overflow-y-auto max-h-64 custom-scrollbar">
+                            {messages.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <MessageCircle className="h-8 w-8 text-gray-700 mx-auto mb-2" />
+                                    <p className="text-xs text-gray-600">👋 Hi! How can we help?</p>
+                                    <p className="text-[10px] text-gray-700 mt-1">Send a message or attach a file. Our team will reply.</p>
+                                </div>
+                            ) : messages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.fromAdmin ? "justify-start" : "justify-end"} gap-2`}>
+                                    {msg.fromAdmin && (
+                                        <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                                            <span className="text-[9px] font-black text-white">A</span>
                                         </div>
                                     )}
+                                    <div className={`max-w-[80%] space-y-2 ${msg.fromAdmin ? "" : "items-end flex flex-col"}`}>
+                                        {/* Attachments */}
+                                        {msg.attachments?.map((att, j) => (
+                                            <AttachmentPreview key={j} att={att} />
+                                        ))}
+                                        {/* Text */}
+                                        {msg.message && (
+                                            <div className={`rounded-2xl px-3 py-2 text-xs ${msg.fromAdmin
+                                                ? "bg-white/5 border border-white/5 text-gray-200 rounded-tl-none"
+                                                : "bg-blue-600 text-white rounded-tr-none"
+                                                }`}>
+                                                {msg.message}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                        <div ref={bottomRef} />
-                    </div>
-
-                    {/* Pending file previews */}
-                    {pendingFiles.length > 0 && (
-                        <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-white/5 max-h-28 overflow-y-auto">
-                            {pendingFiles.map((f, i) => (
-                                <AttachmentPreview key={i} att={f} onRemove={() => removeFile(i)} />
                             ))}
+                            <div ref={bottomRef} />
                         </div>
-                    )}
 
-                    {/* File error */}
-                    {fileError && (
-                        <p className="px-4 text-[10px] text-rose-400 py-1">{fileError}</p>
-                    )}
+                        {/* Pending file previews */}
+                        {pendingFiles.length > 0 && (
+                            <div className="px-4 py-2 flex flex-wrap gap-2 border-t border-white/5 max-h-28 overflow-y-auto">
+                                {pendingFiles.map((f, i) => (
+                                    <AttachmentPreview key={i} att={f} onRemove={() => removeFile(i)} />
+                                ))}
+                            </div>
+                        )}
 
-                    {/* Input Row */}
-                    <div className="px-4 py-3 border-t border-white/5 flex gap-2 items-end">
-                        <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-9 h-9 shrink-0 bg-white/[0.03] border border-white/10 rounded-xl flex items-center justify-center text-gray-500 hover:text-blue-400 hover:border-blue-500/30 transition-all"
-                            title="Attach file"
-                        >
-                            <Paperclip className="h-4 w-4" />
-                        </button>
-                        <textarea
-                            value={inputMsg}
-                            onChange={e => setInputMsg(e.target.value)}
-                            placeholder="Type a message..."
-                            rows={1}
-                            className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-xs text-white resize-none focus:outline-none focus:border-blue-500/50 placeholder:text-gray-700"
-                            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                        />
-                        <button
-                            onClick={sendMessage}
-                            disabled={sending || (!inputMsg.trim() && pendingFiles.length === 0)}
-                            className="w-9 h-9 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-40"
-                        >
-                            {sending ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Send className="h-4 w-4 text-white" />}
-                        </button>
+                        {/* File error */}
+                        {fileError && (
+                            <p className="px-4 text-[10px] text-rose-400 py-1">{fileError}</p>
+                        )}
+
+                        {/* Input Row */}
+                        <div className="px-4 py-3 border-t border-white/5 flex gap-2 items-end">
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-9 h-9 shrink-0 bg-white/[0.03] border border-white/10 rounded-xl flex items-center justify-center text-gray-500 hover:text-blue-400 hover:border-blue-500/30 transition-all"
+                                title="Attach file"
+                            >
+                                <Paperclip className="h-4 w-4" />
+                            </button>
+                            <textarea
+                                value={inputMsg}
+                                onChange={e => setInputMsg(e.target.value)}
+                                placeholder="Type a message..."
+                                rows={1}
+                                className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-xs text-white resize-none focus:outline-none focus:border-blue-500/50 placeholder:text-gray-700"
+                                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
+                            />
+                            <button
+                                onClick={sendMessage}
+                                disabled={sending || (!inputMsg.trim() && pendingFiles.length === 0)}
+                                className="w-9 h-9 bg-blue-600 hover:bg-blue-500 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-40"
+                            >
+                                {sending ? <Loader2 className="h-4 w-4 text-white animate-spin" /> : <Send className="h-4 w-4 text-white" />}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                </DropdownMenuContent>
+            </DropdownMenu>
         </>
     )
 }

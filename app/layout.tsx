@@ -15,8 +15,6 @@ export const metadata: Metadata = {
   generator: "v0.app",
 }
 
-import { LiveChat } from "@/components/live-chat"
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +27,6 @@ export default function RootLayout({
           <DerivAPIProvider>
             <div className="heritage-nebula" />
             <Suspense fallback={null}>{children}</Suspense>
-            <LiveChat />
           </DerivAPIProvider>
         </ThemeProviderAdvanced>
         <Analytics />

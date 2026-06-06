@@ -3,6 +3,17 @@
 import { useEffect, useState, useRef } from "react"
 import { DerivWebSocketManager } from "@/lib/deriv-websocket-manager"
 import { DERIV_APP_ID, DERIV_LEGACY_APP_ID, OAUTH_CLIENT_ID, DERIV_API, DERIV_REDIRECT_URL } from "@/lib/deriv-config"
+import {
+  authLog,
+  normalizeAuthorizeResponse,
+  storeLegacyOAuthTokens,
+  storeModernAccessToken,
+  setOAuthFlowType,
+  cleanOAuthUrlParams,
+  incrementAuthAttempt,
+  resetAuthAttemptCount,
+  isAuthAttemptsExceeded,
+} from "@/lib/deriv-auth-compat"
 
 interface Balance {
   amount: number
@@ -94,13 +105,14 @@ export function useDerivAuth() {
 
   useEffect(() => {
     const handleAuthMessages = (data: any) => {
-      console.log("[v0] 📡 Auth hook message:", data.msg_type)
+      authLog.step("WS message received", data.msg_type)
       if (data.msg_type === "authorize") {
         setIsInitializing(false)
         isInitializingRef.current = false
         if (data.error) {
-          console.error("[v0] ❌ Auth error:", data.error.message)
+          authLog.error("Authorize error", `code=${data.error.code} msg=${data.error.message}`)
           if (data.error.code === "InvalidToken" || data.error.code === "AuthorizationRequired") {
+            authLog.warn("InvalidToken/AuthorizationRequired — clearing session")
             setIsLoggedIn(false)
             setActiveLoginId(null)
             activeLoginIdRef.current = null
@@ -111,57 +123,71 @@ export function useDerivAuth() {
             localStorage.removeItem("deriv_auth_tokens")
             localStorage.removeItem("active_login_id")
             localStorage.removeItem("deriv_last_balances")
+            setOAuthFlowType(null) // FIX: Reset flow type on token rejection
 
             setShowTokenModal(true)
           }
           return
         }
 
-        const { authorize } = data
-        if (authorize) {
-          console.log("[v0] ✅ Authorization successful for:", authorize.loginid)
+        const { authorize: rawAuthorize } = data
+        if (rawAuthorize) {
+          // FIX: Normalize the authorize response to handle both legacy and new accounts.
+          // Legacy accounts may be missing: account_category, landing_company, account_type,
+          // and may return an empty or missing account_list.
+          let normalized
+          try {
+            normalized = normalizeAuthorizeResponse(rawAuthorize)
+          } catch (e) {
+            authLog.error("Failed to normalize authorize response", e)
+            return
+          }
+
+          authLog.step("Authorization successful", {
+            loginid: normalized.loginid,
+            isLegacy: normalized.isLegacyAccount,
+            accounts: normalized.account_list.length,
+            currency: normalized.currency,
+          })
+
+          resetAuthAttemptCount()
           setIsLoggedIn(true)
-          setActiveLoginId(authorize.loginid)
-          activeLoginIdRef.current = authorize.loginid
-          setAccountCode(authorize.loginid)
-          setAccountType(authorize.is_virtual ? "Demo" : "Real")
+          setActiveLoginId(normalized.loginid)
+          activeLoginIdRef.current = normalized.loginid
+          setAccountCode(normalized.loginid)
+          setAccountType(normalized.is_virtual ? "Demo" : "Real")
 
-          if (authorize.balance !== undefined) {
-            setBalance({
-              amount: Number(authorize.balance),
-              currency: authorize.currency || "USD",
-            })
-          }
+          setBalance({
+            amount: normalized.balance,
+            currency: normalized.currency,
+          })
 
-          if (authorize.account_list && Array.isArray(authorize.account_list)) {
-            const lastBalancesMap = getStored("deriv_last_balances", {})
-            const formatted = authorize.account_list.map((acc: any) => {
-              const apiBalance = Number(acc.balance) || 0
-              // Always trust the active account's new balance. For inactive accounts,
-              // if API returns 0, try to use the last known good balance to avoid wiping it.
-              const finalBalance = (acc.loginid === authorize.loginid || apiBalance > 0)
-                ? apiBalance
-                : (lastBalancesMap[acc.loginid]?.balance || 0)
+          // account_list is always present after normalization (synthesized if missing)
+          const lastBalancesMap = getStored("deriv_last_balances", {})
+          const formatted = normalized.account_list.map((acc) => {
+            const apiBalance = Number(acc.balance) || 0
+            const finalBalance = (acc.loginid === normalized.loginid || apiBalance > 0)
+              ? apiBalance
+              : (lastBalancesMap[acc.loginid]?.balance || 0)
 
-              return {
-                id: acc.loginid,
-                type: acc.is_virtual ? "Demo" : "Real",
-                currency: acc.currency,
-                balance: finalBalance,
-              }
-            })
+            return {
+              id: acc.loginid,
+              type: acc.is_virtual ? "Demo" as const : "Real" as const,
+              currency: acc.currency,
+              balance: finalBalance,
+            }
+          })
 
-            // Cache balances for persistence across page refreshes
-            const balanceMap: Record<string, { balance: number, currency: string }> = {}
-            formatted.forEach((f: Account) => {
-              balanceMap[f.id] = { balance: f.balance, currency: f.currency }
-            })
-            localStorage.setItem("deriv_last_balances", JSON.stringify(balanceMap))
-
-            setAccounts(formatted)
-          }
+          // Cache balances for persistence across page refreshes
+          const balanceMap: Record<string, { balance: number; currency: string }> = {}
+          formatted.forEach((f: Account) => {
+            balanceMap[f.id] = { balance: f.balance, currency: f.currency }
+          })
+          localStorage.setItem("deriv_last_balances", JSON.stringify(balanceMap))
+          setAccounts(formatted)
 
           if (!balanceSubscribedRef.current) {
+            authLog.step("Subscribing to balance stream")
             manager.send({ balance: 1, subscribe: 1 })
             balanceSubscribedRef.current = true
             setBalanceSubscribed(true)
@@ -241,31 +267,45 @@ export function useDerivAuth() {
     const state = searchParams.get("state")
 
     const handlePKCERedirectAuth = async () => {
+      authLog.step("PKCE redirect detected", { code: code?.substring(0, 8) + "..." })
+
+      // FIX: Deduplication guard — read PKCE state before clearing to detect
+      // if the /api/auth/callback page already processed this exchange.
+      const storedState = sessionStorage.getItem("oauth_state")
+      const codeVerifier = sessionStorage.getItem("pkce_code_verifier")
+
+      // Clear PKCE storage immediately to prevent double-exchange across concurrent renders
+      sessionStorage.removeItem("oauth_state")
+      sessionStorage.removeItem("pkce_code_verifier")
+
+      if (!storedState && !codeVerifier) {
+        authLog.warn("PKCE state+verifier already consumed — skipping duplicate execution")
+        return
+      }
+
+      if (!state || state !== storedState) {
+        authLog.error("State mismatch (CSRF protection)", { received: state, stored: storedState })
+        setIsInitializing(false)
+        return
+      }
+
+      if (!codeVerifier) {
+        authLog.error("Missing code_verifier in sessionStorage")
+        setIsInitializing(false)
+        return
+      }
+
+      if (isAuthAttemptsExceeded()) {
+        authLog.error("Max auth attempts exceeded. Aborting to prevent redirect loop.")
+        setIsInitializing(false)
+        return
+      }
+      incrementAuthAttempt()
+
+      authLog.step("Exchanging PKCE code for access token via /api/auth/token")
+      setIsInitializing(true)
+
       try {
-        const storedState = sessionStorage.getItem("oauth_state")
-        const codeVerifier = sessionStorage.getItem("pkce_code_verifier")
-
-        // Clear PKCE storage immediately to prevent double-exchange
-        sessionStorage.removeItem("oauth_state")
-        sessionStorage.removeItem("pkce_code_verifier")
-
-        // If both are missing, it means this callback was already processed in a concurrent run
-        if (!storedState && !codeVerifier) {
-          console.log("[v0] PKCE auth already processed or in progress, skipping duplicate execution")
-          return
-        }
-
-        if (!state || state !== storedState) {
-          throw new Error("Invalid state parameter (CSRF protection)")
-        }
-
-        if (!codeVerifier) {
-          throw new Error("Missing code verifier")
-        }
-
-        console.log("[v0] 🔄 Exchanging redirect authorization code for token...")
-        setIsInitializing(true)
-
         const response = await fetch("/api/auth/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -283,27 +323,20 @@ export function useDerivAuth() {
           throw new Error(data.error_description || data.error || "Token exchange failed")
         }
 
-        console.log("[v0] 🔑 Storing retrieved access token...")
-        
-        // Clear PKCE storage
-        sessionStorage.removeItem("oauth_state")
-        sessionStorage.removeItem("pkce_code_verifier")
+        authLog.token("Modern access_token received", data.access_token)
 
-        // Store token for the app
-        localStorage.setItem("deriv_api_token", data.access_token)
+        // FIX: Use compat helper — sets deriv_api_token, oauth_flow_type="modern",
+        // and clears PKCE sessionStorage atomically.
+        storeModernAccessToken(data.access_token)
         setToken(data.access_token)
-        
-        // Clean URL query parameters
-        const url = new URL(window.location.href)
-        url.searchParams.delete("code")
-        url.searchParams.delete("state")
-        url.searchParams.delete("scope")
-        window.history.replaceState({}, document.title, url.pathname + url.search)
 
-        // Connect with the new token
+        // Clean URL query parameters
+        cleanOAuthUrlParams("modern")
+
+        authLog.step("Connecting with modern access token")
         await connectWithToken(data.access_token)
       } catch (err: any) {
-        console.error("[v0] ❌ PKCE auth callback error:", err)
+        authLog.error("PKCE auth callback error", err)
         alert(`Authentication failed: ${err.message || "Unknown error"}`)
         setIsInitializing(false)
       }
@@ -318,18 +351,17 @@ export function useDerivAuth() {
     const oauthResult = parseDerivOAuthParams(searchParams)
 
     if (oauthResult && oauthResult.accounts.length > 0) {
-      console.log("[v0] 🔐 Deriv legacy OAuth redirect detected with", oauthResult.accounts.length, "accounts")
-      
-      // Store all account tokens
-      const tokenMap: Record<string, string> = {}
-      oauthResult.accounts.forEach(acc => {
-        tokenMap[acc.id] = acc.token
-      })
-      localStorage.setItem("deriv_auth_tokens", JSON.stringify(tokenMap))
+      authLog.legacy("Legacy OAuth redirect detected", `${oauthResult.accounts.length} accounts`)
 
-      // Pick the first account (or prefer demo)
-      const preferredAccount = oauthResult.accounts.find(a => a.id.startsWith("VR")) || oauthResult.accounts[0]
+      // FIX: Use compat helper which atomically stores tokens AND sets
+      // oauth_flow_type="legacy". Without this, a stale "modern" value in
+      // localStorage causes the REST handshake to run for legacy tokens,
+      // which fails (legacy accounts have no Options V1 accounts), adding
+      // 10-20s of delay before falling back to the correct direct WS path.
+      const { tokenMap, preferredAccount } = storeLegacyOAuthTokens(oauthResult.accounts)
       const primaryToken = preferredAccount.token
+
+      authLog.token(`Primary token for ${preferredAccount.id}`, primaryToken)
 
       // Store as active
       localStorage.setItem("deriv_api_token", primaryToken)
@@ -339,7 +371,7 @@ export function useDerivAuth() {
       setActiveLoginId(preferredAccount.id)
       activeLoginIdRef.current = preferredAccount.id
 
-      // Build initial accounts list
+      // Build initial accounts list (balances = 0; authorize event will populate)
       const initialAccounts: Account[] = oauthResult.accounts.map(acc => ({
         id: acc.id,
         type: acc.id.startsWith("VR") ? "Demo" as const : "Real" as const,
@@ -348,17 +380,10 @@ export function useDerivAuth() {
       }))
       setAccounts(initialAccounts)
 
-      // Clean URL — remove all OAuth params
-      const url = new URL(window.location.href)
-      for (let i = 1; i <= 20; i++) {
-        url.searchParams.delete(`acct${i}`)
-        url.searchParams.delete(`token${i}`)
-        url.searchParams.delete(`cur${i}`)
-      }
-      url.searchParams.delete("scope")
-      window.history.replaceState({}, document.title, url.pathname + (url.search || ""))
+      // Clean URL — remove all legacy OAuth params
+      cleanOAuthUrlParams("legacy")
 
-      // Begin final auth connection for the legacy token
+      authLog.step("Starting legacy WebSocket authorization")
       setIsInitializing(true)
       connectWithToken(primaryToken)
       return
@@ -385,35 +410,41 @@ export function useDerivAuth() {
 
   const connectWithToken = async (apiToken: string) => {
     if (!apiToken || apiToken.length < 10) {
+      authLog.warn("connectWithToken: token too short, skipping", apiToken?.length)
       setIsInitializing(false)
       return
     }
 
+    authLog.token("connectWithToken: starting authorize", apiToken)
+    authLog.step("oauth_flow_type", localStorage.getItem("oauth_flow_type") || "(not set)")
+
     try {
-      console.log("[v0] 🔄 Connecting with token:", apiToken.substring(0, 5) + "...")
-      // Use the manager's V1 Auth flow (handles REST+OTP or Legacy Fallback)
+      // Delegates to manager._doAuthorize() which routes based on oauth_flow_type:
+      //   "modern" → REST /accounts → OTP → wss://...?otp=... (new accounts)
+      //   anything else → direct { authorize: token } on legacy WS (legacy accounts)
       await manager.authorize(apiToken)
-      // Note: isInitializing is also set to false in the 'authorize' event handler above
+      // Note: isInitializing is set to false in the 'authorize' event handler above
+      authLog.step("manager.authorize() resolved without error")
       setIsInitializing(false)
     } catch (e: any) {
-      console.error("[v0] Connection error during auth:", e)
+      authLog.error("connectWithToken: authorize threw", { code: e?.code, message: e?.message })
       setIsInitializing(false)
       
-      // Handle the raw API error object that is thrown by the manager
       if (e?.code === "InvalidToken" || e?.code === "AuthorizationRequired") {
-         console.warn("[v0] ⚠️ Invalid Token detected. Nuking session.")
-         setIsLoggedIn(false)
-         setActiveLoginId(null)
-         activeLoginIdRef.current = null
-         setAccountCode("")
-         setToken("")
+        authLog.warn("InvalidToken/AuthorizationRequired — clearing session")
+        setIsLoggedIn(false)
+        setActiveLoginId(null)
+        activeLoginIdRef.current = null
+        setAccountCode("")
+        setToken("")
 
-         localStorage.removeItem("deriv_api_token")
-         localStorage.removeItem("deriv_auth_tokens")
-         localStorage.removeItem("active_login_id")
-         localStorage.removeItem("deriv_last_balances")
-         
-         setShowTokenModal(true)
+        localStorage.removeItem("deriv_api_token")
+        localStorage.removeItem("deriv_auth_tokens")
+        localStorage.removeItem("active_login_id")
+        localStorage.removeItem("deriv_last_balances")
+        setOAuthFlowType(null) // FIX: Always reset on invalid token
+        
+        setShowTokenModal(true)
       } else if (!isLoggedIn) {
         setShowTokenModal(true)
       }
@@ -550,10 +581,16 @@ export function useDerivAuth() {
 
   const logout = () => {
     if (typeof window === "undefined") return
+    authLog.step("Logout initiated")
     manager.unsubscribeAll()
     localStorage.removeItem("deriv_api_token")
     localStorage.removeItem("deriv_auth_tokens")
     localStorage.removeItem("active_login_id")
+    localStorage.removeItem("deriv_last_balances")
+    // FIX: Clear oauth_flow_type on logout so the next login starts fresh.
+    // Leaving a stale "modern" value here is the primary cause of legacy users
+    // hitting the REST handshake on subsequent logins after a modern session.
+    setOAuthFlowType(null)
     setToken("")
     setIsLoggedIn(false)
     setBalance(null)
@@ -564,6 +601,7 @@ export function useDerivAuth() {
     balanceSubscribedRef.current = false
     setBalanceSubscribed(false)
     setShowTokenModal(true)
+    authLog.step("Logout complete")
   }
 
   const switchAccount = (loginId: string) => {

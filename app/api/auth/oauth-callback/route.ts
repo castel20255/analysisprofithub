@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * OAuth 2.0 Callback Handler for Deriv
- * This endpoint receives the authorization code from Deriv's OAuth provider
- * and exchanges it for an access token using the PKCE code verifier
+ * Secondary OAuth 2.0 Callback Handler for Deriv
+ *
+ * This server-side route receives the authorization code when Deriv routes the
+ * callback to /api/auth/oauth-callback. It CANNOT do client-side PKCE exchange
+ * because:
+ *   - sessionStorage (where pkce_code_verifier lives) is inaccessible on the server.
+ *   - The primary PKCE exchange is handled by use-deriv-auth.ts on the index page (/).
+ *
+ * FIX: Pass the code + state back to the index page as URL params so the
+ * client-side handler in use-deriv-auth.ts can do the full PKCE exchange with
+ * access to sessionStorage.
+ *
+ * PREVIOUS BUG: This route was redirecting to /dashboard (non-existent route)
+ * and attempted cookie-based PKCE state validation (always failed — client uses
+ * sessionStorage, not cookies).
  */
 
 export async function GET(request: NextRequest) {
@@ -14,11 +26,11 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
 
-    console.log('[v0] OAuth Callback received:', { code, state, error })
+    console.log('[v0] OAuth secondary callback received:', { code: code?.substring(0, 8), state, error })
 
-    // Handle OAuth errors
+    // Handle OAuth errors from Deriv
     if (error) {
-      console.error('[v0] OAuth Error:', error, errorDescription)
+      console.error('[v0] OAuth error from Deriv:', error, errorDescription)
       return NextResponse.redirect(
         new URL(
           `/auth-error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(errorDescription || '')}`,
@@ -27,7 +39,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate required parameters
     if (!code) {
       console.error('[v0] OAuth callback missing authorization code')
       return NextResponse.redirect(
@@ -38,89 +49,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate state parameter for CSRF protection
-    if (typeof window === 'undefined') {
-      const sessionState = request.cookies.get('oauth_state')?.value
-      if (!state || state !== sessionState) {
-        console.error('[v0] OAuth state mismatch - possible CSRF attack')
-        return NextResponse.redirect(
-          new URL(
-            '/auth-error?error=state_mismatch&description=OAuth%20state%20validation%20failed',
-            request.nextUrl.origin
-          )
-        )
-      }
-    }
+    // Pass the code + state to the index page where use-deriv-auth.ts will handle
+    // the full client-side PKCE exchange with access to sessionStorage.
+    const redirectUrl = new URL('/', request.nextUrl.origin)
+    redirectUrl.searchParams.set('code', code)
+    if (state) redirectUrl.searchParams.set('state', state)
 
-    // Exchange authorization code for access token
-    // This is done in a separate server action to keep the client_secret secure
-    const response = await fetch('https://auth.deriv.com/oauth2/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: process.env.NEXT_PUBLIC_DERIV_OAUTH_CLIENT_ID || '33tdJCamBVncjRj9m3WFe',
-        redirect_uri: `${request.nextUrl.origin}`,
-        code_verifier: request.cookies.get('pkce_code_verifier')?.value || '',
-      }).toString(),
-    })
+    console.log('[v0] Forwarding OAuth code to index page for client-side PKCE exchange')
+    return NextResponse.redirect(redirectUrl)
 
-    if (!response.ok) {
-      const errorData = await response.text()
-      console.error('[v0] Token exchange failed:', response.status, errorData)
-      return NextResponse.redirect(
-        new URL(
-          `/auth-error?error=token_exchange_failed&description=${encodeURIComponent(errorData)}`,
-          request.nextUrl.origin
-        )
-      )
-    }
-
-    const tokenData = await response.json()
-
-    console.log('[v0] OAuth token exchange successful')
-
-    // Store the access token in an HTTP-only cookie
-    const response_with_cookie = NextResponse.redirect(
-      new URL('/dashboard', request.nextUrl.origin)
-    )
-
-    response_with_cookie.cookies.set({
-      name: 'deriv_access_token',
-      value: tokenData.access_token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: tokenData.expires_in || 86400, // Default 24 hours
-      path: '/',
-    })
-
-    // Store user info if available
-    if (tokenData.user_id) {
-      response_with_cookie.cookies.set({
-        name: 'deriv_user_id',
-        value: tokenData.user_id.toString(),
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 86400,
-        path: '/',
-      })
-    }
-
-    // Clear OAuth state and PKCE verifier
-    response_with_cookie.cookies.delete('oauth_state')
-    response_with_cookie.cookies.delete('pkce_code_verifier')
-
-    return response_with_cookie
-  } catch (error) {
-    console.error('[v0] OAuth callback error:', error)
+  } catch (err) {
+    console.error('[v0] OAuth callback server error:', err)
     return NextResponse.redirect(
       new URL(
-        `/auth-error?error=server_error&description=${encodeURIComponent(error instanceof Error ? error.message : 'Unknown error')}`,
+        `/auth-error?error=server_error&description=${encodeURIComponent(err instanceof Error ? err.message : 'Unknown error')}`,
         request.nextUrl.origin
       )
     )

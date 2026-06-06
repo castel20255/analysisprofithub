@@ -308,12 +308,27 @@ export class DerivAPIClient {
   async getActiveSymbols(): Promise<ActiveSymbol[]> {
     const request: any = { active_symbols: "brief" }
     const response = await this.send(request)
-    return response.active_symbols.map((s: any) => ({
+    const mapped: ActiveSymbol[] = response.active_symbols.map((s: any) => ({
       symbol: s.underlying_symbol || s.symbol,
       display_name: s.underlying_symbol_name || s.display_name,
       market: s.market,
       market_display_name: s.market_display_name
     }))
+
+    // Ensure 15 1s, 30 1s, and 90 1s markets are present as fallbacks
+    const fallbacks = [
+      { symbol: "1HZ15V", display_name: "Volatility 15 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices" },
+      { symbol: "1HZ30V", display_name: "Volatility 30 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices" },
+      { symbol: "1HZ90V", display_name: "Volatility 90 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices" }
+    ]
+
+    fallbacks.forEach(f => {
+      if (!mapped.some(s => s.symbol === f.symbol)) {
+        mapped.push(f)
+      }
+    })
+
+    return mapped
   }
 
   async getContractsFor(symbol: string): Promise<ContractType[]> {

@@ -525,11 +525,15 @@ export class DerivWebSocketManager {
       const accounts = await this.getAccounts()
       
       if (accounts.length > 0) {
-        // 2. Pick an account (prefer demo if available, otherwise first one)
-        if (!this.currentAccountId) {
+        // 2. Pick an account
+        const activeLoginId = typeof window !== "undefined" ? localStorage.getItem("active_login_id") : null
+        if (activeLoginId && accounts.some((a: any) => a.account_id === activeLoginId)) {
+          this.currentAccountId = activeLoginId
+          this.log("info", `Selected stored active account: ${this.currentAccountId}`)
+        } else if (!this.currentAccountId || !accounts.some((a: any) => a.account_id === this.currentAccountId)) {
           const targetAccount = accounts.find((a: any) => a.account_type === 'demo') || accounts[0]
           this.currentAccountId = targetAccount.account_id
-          this.log("info", `Selected account: ${this.currentAccountId} (${targetAccount.account_type})`)
+          this.log("info", `Selected default account: ${this.currentAccountId} (${targetAccount.account_type})`)
         }
         
         const targetAccount = accounts.find((a: any) => a.account_id === this.currentAccountId) || accounts[0]
@@ -1027,7 +1031,19 @@ export class DerivWebSocketManager {
     }
 
     this.activeSubscriptions.delete(cleanSymbol)
-    console.error(`[v0] Failed to subscribe to ${cleanSymbol}:`, lastError)
+    // Decode the error: empty {} usually means SymbolNotFound or MarketIsClosed
+    const errMsg = lastError?.error?.message
+      || lastError?.message
+      || (typeof lastError === 'object' && Object.keys(lastError).length === 0
+          ? 'SymbolNotFound or market not available on this connection'
+          : JSON.stringify(lastError))
+    const errCode = lastError?.error?.code || lastError?.code || 'unknown'
+    // Only log as error for truly unexpected failures; symbol-not-found is expected for some markets
+    if (errCode === 'SymbolNotFound' || errCode === 'MarketIsClosed' || errCode === 'unknown') {
+      console.warn(`[v0] subscribeTicks: ${cleanSymbol} not available (${errCode}): ${errMsg}`)
+    } else {
+      console.error(`[v0] Failed to subscribe to ${cleanSymbol}: [${errCode}] ${errMsg}`)
+    }
     return ""
   }
 
@@ -1144,7 +1160,7 @@ export class DerivWebSocketManager {
         try {
           const response = await this.sendAndWait({ active_symbols: "brief" }, 15000)
           if (response?.active_symbols) {
-            this.symbolsCache = response.active_symbols.map((s: any) => {
+            let mapped = response.active_symbols.map((s: any) => {
               const symbol = s.underlying_symbol || s.symbol || ""
               const display_name = s.underlying_symbol_name || s.display_name || symbol
               const market = s.market || "unknown"
@@ -1156,7 +1172,6 @@ export class DerivWebSocketManager {
               const decimalCount = rawPip !== undefined ? this.getDecimalCount(rawPip) : 2
               this.pipSizeMap.set(symbol, decimalCount)
               
-              // Map all properties from original symbol to prevent library crashes (like useCache)
               return { 
                 ...s,
                 symbol, 
@@ -1168,6 +1183,22 @@ export class DerivWebSocketManager {
                 pip_size: decimalCount 
               }
             })
+
+            // Ensure 15 1s, 30 1s, and 90 1s markets are present as fallbacks
+            const fallbacks = [
+              { symbol: "1HZ15V", display_name: "Volatility 15 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices", submarket: "random_index", submarket_display_name: "Continuous Indices", pip_size: 4 },
+              { symbol: "1HZ30V", display_name: "Volatility 30 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices", submarket: "random_index", submarket_display_name: "Continuous Indices", pip_size: 4 },
+              { symbol: "1HZ90V", display_name: "Volatility 90 (1S) Index", market: "synthetic_index", market_display_name: "Derived Indices", submarket: "random_index", submarket_display_name: "Continuous Indices", pip_size: 4 }
+            ]
+
+            fallbacks.forEach(f => {
+              if (!mapped.some((s: any) => s.symbol === f.symbol)) {
+                this.pipSizeMap.set(f.symbol, f.pip_size)
+                mapped.push(f)
+              }
+            })
+
+            this.symbolsCache = mapped
             console.log(`[v0] Loaded ${this.symbolsCache?.length} symbols`)
             return this.symbolsCache!
           }

@@ -19,7 +19,23 @@ export class SmartIntelligenceEngine {
     private wsManager: DerivWebSocketManager
     private isScanning: boolean = false
     private subscriptionIds: Map<string, string> = new Map()
-    private markets: string[] = []
+
+    // Standard Volatility Indices — available on public (unauthenticated) connections
+    private readonly PUBLIC_MARKETS: string[] = [
+        "R_10", "R_25", "R_50", "R_75", "R_100",
+        "1HZ10V", "1HZ25V", "1HZ50V", "1HZ75V", "1HZ100V"
+    ]
+
+    // 1S indices that require an authenticated (OTP/legacy token) connection
+    private readonly AUTH_MARKETS: string[] = [
+        "1HZ15V", "1HZ30V", "1HZ90V",
+        "1HZ200V", "1HZ300V"
+    ]
+
+    private get markets(): string[] {
+        return [...this.PUBLIC_MARKETS, ...this.AUTH_MARKETS]
+    }
+
     private focusMarket: string | null = null
     private scanResults: Map<string, MarketScore> = new Map()
     private tickWindows: Map<string, number[]> = new Map()
@@ -44,19 +60,44 @@ export class SmartIntelligenceEngine {
         })
     }
 
-    public async startScanning() {
-        if (this.isScanning) return
-        console.log("[v0] Starting Smart Intelligence multi-market scan...")
-        this.isScanning = true
-
-        for (const symbol of this.markets) {
+    /**
+     * Subscribe to a single market, silently skipping if unavailable.
+     */
+    private async subscribeMarket(symbol: string): Promise<void> {
+        if (this.subscriptionIds.has(symbol)) return
+        try {
             const subId = await this.wsManager.subscribeTicks(symbol, (tick) => {
                 this.processTick(symbol, tick)
             })
             if (subId) {
                 this.subscriptionIds.set(symbol, subId)
+                console.log(`[v0] Intelligence: subscribed to ${symbol}`)
+            } else {
+                // Symbol unavailable on current connection (e.g. not authorized yet)
+                console.info(`[v0] Intelligence: ${symbol} unavailable on current connection — will retry after auth`)
             }
+        } catch (e) {
+            console.info(`[v0] Intelligence: skipping ${symbol} — ${e}`)
         }
+    }
+
+    public async startScanning() {
+        if (this.isScanning) return
+        console.log("[v0] Starting Smart Intelligence multi-market scan...")
+        this.isScanning = true
+
+        // Phase 1: Subscribe to public markets immediately
+        for (const symbol of this.PUBLIC_MARKETS) {
+            await this.subscribeMarket(symbol)
+        }
+
+        // Phase 2: Subscribe to auth-required markets after a short delay
+        // (gives the auth flow time to complete before we attempt these)
+        setTimeout(async () => {
+            for (const symbol of this.AUTH_MARKETS) {
+                await this.subscribeMarket(symbol)
+            }
+        }, 8000) // 8s delay — OTP auth typically completes in 2-5s
     }
 
     public async stopScanning() {
@@ -66,6 +107,18 @@ export class SmartIntelligenceEngine {
         }
         this.subscriptionIds.clear()
         this.isScanning = false
+    }
+
+    /**
+     * Called after login/authorization completes to attempt subscribing
+     * the auth-required 1HZ markets that may have failed during initial scan.
+     */
+    public async retryAuthMarkets() {
+        if (!this.isScanning) return
+        console.log("[v0] Intelligence: retrying auth-required markets after authorization...")
+        for (const symbol of this.AUTH_MARKETS) {
+            await this.subscribeMarket(symbol)
+        }
     }
 
     public async setFocusMarket(symbol: string) {

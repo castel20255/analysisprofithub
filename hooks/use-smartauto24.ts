@@ -47,12 +47,21 @@ export function useSmartAuto24(market: string, isConnected: boolean, maxTicks: n
     intelligenceRef.current.setFocusMarket(market)
     intelligenceRef.current.startScanning()
 
+    // After authorization completes, retry the auth-required 1HZ markets
+    const { DerivWebSocketManager } = require('@/lib/deriv-websocket-manager')
+    const wsManager = DerivWebSocketManager.getInstance()
+    const onAuthorize = () => {
+      intelligenceRef.current?.retryAuthMarkets()
+    }
+    wsManager.on('authorize', onAuthorize)
+
     const unsub = intelligenceRef.current.onUpdate((scores) => {
       setMarketScores(scores)
     })
 
     return () => {
       if (unsub) unsub()
+      wsManager.off('authorize', onAuthorize)
       // We don't stop scanning globally on unmount in case other components need it, 
       // as it's a singleton, but we could if we wanted stricter resource management.
     }

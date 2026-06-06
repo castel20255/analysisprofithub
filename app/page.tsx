@@ -43,6 +43,7 @@ import { RiskDisclaimerModal } from "@/components/modals/risk-disclaimer-modal"
 import { MarketSelector } from "@/components/market-selector"
 
 import { FloatingAIScanner } from "@/components/floating-ai-scanner"
+import { LiveChat } from "@/components/live-chat"
 import { ApiTokenModal } from "@/components/api-token-modal"
 import { useDerivAuth } from "@/hooks/use-deriv-auth"
 import { DashboardTab } from "@/components/tabs/dashboard-tab"
@@ -237,6 +238,7 @@ export default function DerivAnalysisApp() {
                       <AlertTriangle className="h-3.5 w-3.5" />
                       Risk
                     </Button>
+                    <LiveChat />
                     <Button
                       variant="ghost"
                       size="icon"

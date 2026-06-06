@@ -559,6 +559,7 @@ export function SmartAuto24Tab({
 
   const startDiffersTrades = (analysis: any) => {
     executeTrades(analysis)
+    performTrade(analysis)
   }
 
 
@@ -574,6 +575,7 @@ export function SmartAuto24Tab({
   const performTrade = async (analysis: any) => {
     if (isExecutingTradeRef.current || !traderRef.current) return
     isExecutingTradeRef.current = true
+    analysisRef.current = null // Clear the signal so we don't trade repeatedly on the same signal
 
     try {
       let contractType: string
