@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Shield, Zap, Globe, Cpu, Rocket, Activity, Wifi } from "lucide-react"
+import { Shield, Zap, Globe, Cpu, Rocket, Activity, Wifi, CheckCircle2 } from "lucide-react"
 
 interface LoadingStep {
   id: string
@@ -9,7 +9,8 @@ interface LoadingStep {
   sublabel: string
   status: "pending" | "loading" | "complete"
   icon: any
-  color: string
+  accent: string
+  glow: string
 }
 
 interface LoadingScreenProps {
@@ -19,18 +20,67 @@ interface LoadingScreenProps {
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0)
   const [currentStepIdx, setCurrentStepIdx] = useState(-1)
-  const [showMain, setShowMain] = useState(false)
+  const [dots, setDots] = useState(".")
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const progressRef = useRef(0)
 
   const [steps, setSteps] = useState<LoadingStep[]>([
-    { id: "connect", label: "Secure Connection", sublabel: "Establishing encrypted WebSocket", status: "pending", icon: Globe, color: "#6366f1" },
-    { id: "markets", label: "Market Feeds", sublabel: "Calibrating live data streams", status: "pending", icon: Wifi, color: "#06b6d4" },
-    { id: "analyze", label: "Quantum Engine", sublabel: "Initializing analysis modules", status: "pending", icon: Cpu, color: "#8b5cf6" },
-    { id: "account", label: "Authentication", sublabel: "Verifying secure credentials", status: "pending", icon: Shield, color: "#10b981" },
-    { id: "finalize", label: "Interface Ready", sublabel: "Launching trading terminal", status: "pending", icon: Rocket, color: "#f59e0b" },
+    {
+      id: "connect",
+      label: "Secure Link",
+      sublabel: "Encrypted WebSocket tunnel",
+      status: "pending",
+      icon: Globe,
+      accent: "text-indigo-400",
+      glow: "shadow-indigo-500/40",
+    },
+    {
+      id: "markets",
+      label: "Market Feed",
+      sublabel: "Live data calibration",
+      status: "pending",
+      icon: Wifi,
+      accent: "text-cyan-400",
+      glow: "shadow-cyan-500/40",
+    },
+    {
+      id: "analyze",
+      label: "Quantum Core",
+      sublabel: "Analysis engine boot",
+      status: "pending",
+      icon: Cpu,
+      accent: "text-violet-400",
+      glow: "shadow-violet-500/40",
+    },
+    {
+      id: "account",
+      label: "Auth Vault",
+      sublabel: "Credential verification",
+      status: "pending",
+      icon: Shield,
+      accent: "text-emerald-400",
+      glow: "shadow-emerald-500/40",
+    },
+    {
+      id: "launch",
+      label: "Launch",
+      sublabel: "Terminal initializing",
+      status: "pending",
+      icon: Rocket,
+      accent: "text-amber-400",
+      glow: "shadow-amber-500/40",
+    },
   ])
 
-  // ── Canvas particles ────────────────────────────────────────────────
+  /* ── Animated dots ── */
+  useEffect(() => {
+    const t = setInterval(() => {
+      setDots(d => (d.length >= 3 ? "." : d + "."))
+    }, 480)
+    return () => clearInterval(t)
+  }, [])
+
+  /* ── Canvas particle network ── */
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -38,18 +88,18 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
     if (!ctx) return
 
     let raf: number
-    let W = canvas.width = window.innerWidth
-    let H = canvas.height = window.innerHeight
+    let W = (canvas.width = window.innerWidth)
+    let H = (canvas.height = window.innerHeight)
 
-    type Particle = { x: number; y: number; vx: number; vy: number; r: number; hue: number; alpha: number }
-    const particles: Particle[] = Array.from({ length: 80 }, () => ({
+    type P = { x: number; y: number; vx: number; vy: number; r: number; hue: number; a: number }
+    const ps: P[] = Array.from({ length: 70 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
-      r: Math.random() * 1.8 + 0.4,
-      hue: Math.random() > 0.5 ? 245 : 195,
-      alpha: Math.random() * 0.25 + 0.05,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      r: Math.random() * 1.6 + 0.4,
+      hue: [245, 195, 270][Math.floor(Math.random() * 3)],
+      a: Math.random() * 0.2 + 0.05,
     }))
 
     const onResize = () => {
@@ -60,22 +110,23 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
     const draw = () => {
       ctx.clearRect(0, 0, W, H)
-      particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy
+      ps.forEach((p, i) => {
+        p.x += p.vx
+        p.y += p.vy
         if (p.x < 0 || p.x > W) p.vx *= -1
         if (p.y < 0 || p.y > H) p.vy *= -1
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${p.alpha})`
+        ctx.fillStyle = `hsla(${p.hue},80%,65%,${p.a})`
         ctx.fill()
-        for (let j = i + 1; j < particles.length; j++) {
-          const q = particles[j]
+        for (let j = i + 1; j < ps.length; j++) {
+          const q = ps[j]
           const d = Math.hypot(p.x - q.x, p.y - q.y)
-          if (d < 130) {
+          if (d < 140) {
             ctx.beginPath()
             ctx.moveTo(p.x, p.y)
             ctx.lineTo(q.x, q.y)
-            ctx.strokeStyle = `hsla(240, 80%, 65%, ${0.08 * (1 - d / 130)})`
+            ctx.strokeStyle = `hsla(240,75%,65%,${0.07 * (1 - d / 140)})`
             ctx.lineWidth = 0.5
             ctx.stroke()
           }
@@ -84,178 +135,236 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
       raf = requestAnimationFrame(draw)
     }
     draw()
-    return () => { window.removeEventListener("resize", onResize); cancelAnimationFrame(raf) }
+    return () => {
+      window.removeEventListener("resize", onResize)
+      cancelAnimationFrame(raf)
+    }
   }, [])
 
-  const progressRef = useRef(0)
-
-  // ── Loading sequence ────────────────────────────────────────────────
+  /* ── Loading sequence ── */
   useEffect(() => {
     const animateTo = (target: number, ms: number) =>
       new Promise<void>(res => {
         const from = progressRef.current
         const start = Date.now()
         const tick = () => {
-          const elapsed = Math.min((Date.now() - start) / ms, 1)
-          const eased = 1 - Math.pow(1 - elapsed, 3)
-          const current = from + (target - from) * eased
-          progressRef.current = current
-          setProgress(current)
-          if (elapsed < 1) requestAnimationFrame(tick)
+          const t = Math.min((Date.now() - start) / ms, 1)
+          const eased = 1 - Math.pow(1 - t, 3)
+          const cur = from + (target - from) * eased
+          progressRef.current = cur
+          setProgress(cur)
+          if (t < 1) requestAnimationFrame(tick)
           else res()
         }
         requestAnimationFrame(tick)
       })
 
     const sequence = async () => {
-      await new Promise(r => setTimeout(r, 700))
-      setShowMain(true)
-
+      await new Promise(r => setTimeout(r, 600))
       for (let i = 0; i < steps.length; i++) {
         setCurrentStepIdx(i)
-        setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, status: "loading" } : s))
-        await animateTo((i + 1) * (100 / steps.length), 650)
-        setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, status: "complete" } : s))
-        await new Promise(r => setTimeout(r, 120))
+        setSteps(prev => prev.map((s, idx) => (idx === i ? { ...s, status: "loading" } : s)))
+        await animateTo((i + 1) * (100 / steps.length), 700)
+        setSteps(prev => prev.map((s, idx) => (idx === i ? { ...s, status: "complete" } : s)))
+        await new Promise(r => setTimeout(r, 100))
       }
-
       await new Promise(r => setTimeout(r, 500))
       onComplete()
     }
-
     sequence()
   }, [])
 
+  const currentStep = steps[currentStepIdx]
+
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#020408] select-none">
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#030508] select-none">
 
-      {/* Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
+      {/* Canvas particles */}
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none opacity-70" />
 
-      {/* Ambient Glows */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 blur-[160px] rounded-full" />
-        <div className="absolute -top-20 -right-20 w-96 h-96 bg-cyan-500/5 blur-[120px] rounded-full" />
-        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-violet-600/5 blur-[120px] rounded-full" />
-        {/* Grid overlay */}
+      {/* Layered ambient glows */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-indigo-600/[0.07] blur-[140px]" />
+        <div className="absolute -top-16 left-1/4 w-72 h-72 rounded-full bg-violet-600/[0.06] blur-[100px]" />
+        <div className="absolute bottom-0 right-1/4 w-72 h-72 rounded-full bg-cyan-500/[0.05] blur-[100px]" />
+        {/* Subtle scan line */}
         <div
-          className="absolute inset-0 opacity-[0.025]"
+          className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"
+          style={{ top: `${((progress / 100) * 80) + 10}%`, transition: "top 0.3s ease" }}
+        />
+        {/* Grid */}
+        <div
+          className="absolute inset-0 opacity-[0.022]"
           style={{
-            backgroundImage: `linear-gradient(rgba(99,102,241,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.5) 1px, transparent 1px)`,
-            backgroundSize: "60px 60px"
+            backgroundImage: `linear-gradient(rgba(99,102,241,1) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,1) 1px, transparent 1px)`,
+            backgroundSize: "55px 55px",
           }}
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl px-6 flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-lg px-6 flex flex-col items-center gap-8">
 
-        {/* ── Central Orb ── */}
-        <div className="relative w-40 h-40 flex items-center justify-center mb-10">
-          {/* Outermost ping ring */}
-          <div className="absolute inset-0 rounded-full border border-indigo-500/10 animate-ping" style={{ animationDuration: "3s" }} />
-          {/* Dashed slow spin ring */}
-          <div className="absolute w-36 h-36 border border-dashed border-indigo-500/20 rounded-full" style={{ animation: "spin 50s linear infinite" }} />
-          {/* Fast inner ring */}
-          <div className="absolute w-28 h-28 border border-cyan-400/30 rounded-full" style={{ animation: "spin 10s linear infinite reverse" }} />
-          {/* Medium ring */}
-          <div className="absolute w-32 h-32 border border-violet-500/20 rounded-full" style={{ animation: "spin 22s linear infinite" }} />
-          {/* Glowing core */}
-          <div className="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-600/40 via-blue-500/30 to-cyan-400/20 blur-xl animate-pulse" />
-          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-[0_0_40px_rgba(99,102,241,0.5)] border border-white/10">
-            <Activity className="w-6 h-6 text-white animate-pulse" />
+        {/* ── Glowing Orb ── */}
+        <div className="relative w-44 h-44 flex items-center justify-center">
+          {/* Outer slow-pulse halo */}
+          <div className="absolute inset-0 rounded-full bg-indigo-600/10 blur-2xl animate-pulse" style={{ animationDuration: "3s" }} />
+          {/* Ring 1 – slow dashed */}
+          <div
+            className="absolute w-[168px] h-[168px] rounded-full border border-dashed border-indigo-500/25"
+            style={{ animation: "spin 45s linear infinite" }}
+          />
+          {/* Ring 2 – medium solid */}
+          <div
+            className="absolute w-36 h-36 rounded-full border border-violet-500/30"
+            style={{ animation: "spin 18s linear infinite reverse" }}
+          />
+          {/* Ring 3 – fast */}
+          <div
+            className="absolute w-28 h-28 rounded-full border border-cyan-400/25"
+            style={{ animation: "spin 8s linear infinite" }}
+          />
+          {/* Pulsing core glow */}
+          <div className="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-600/50 via-blue-500/30 to-cyan-400/20 blur-2xl animate-pulse" />
+          {/* Core icon box */}
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.55),inset_0_1px_0_rgba(255,255,255,0.1)]">
+            <Activity className="w-7 h-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
           </div>
-          {/* Orbiting dot */}
-          <div className="absolute w-full h-full" style={{ animation: "spin 5s linear infinite" }}>
-            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+          {/* Orbiting dot 1 */}
+          <div className="absolute w-full h-full" style={{ animation: "spin 4s linear infinite" }}>
+            <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_#22d3ee,0_0_6px_#22d3ee]" />
+          </div>
+          {/* Orbiting dot 2 */}
+          <div className="absolute w-full h-full" style={{ animation: "spin 7s linear infinite reverse" }}>
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_10px_#a78bfa]" />
           </div>
         </div>
 
         {/* ── Brand ── */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl sm:text-6xl font-black tracking-[-0.04em] text-white uppercase leading-none">
-            ANALYSIS
-            <span className="bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]">
-              TOOLPRO
+        <div className="text-center space-y-2">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/5 backdrop-blur-sm mb-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse" />
+            <span className="text-[9px] font-black tracking-[0.3em] text-emerald-400 uppercase">System Booting</span>
+          </div>
+
+          <h1 className="text-5xl font-black tracking-[-0.03em] leading-none text-white">
+            PRO
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(139,92,246,0.5)]">
+              TOOL
             </span>
           </h1>
-          <p className="mt-3 text-[9px] sm:text-[10px] font-black tracking-[0.4em] text-white/25 uppercase">
-            Quantum Analytics Engine · v4.5
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-lg font-black text-white/30 tracking-widest">3.0</span>
+            <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-[10px] font-black text-amber-400 tracking-widest uppercase">
+              TURBO
+            </span>
+          </div>
+          <p className="text-[9px] font-black tracking-[0.35em] text-white/20 uppercase">
+            Advanced Trading Intelligence Platform
           </p>
         </div>
 
-        {/* ── Progress Bar ── */}
-        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 mb-8 backdrop-blur-xl">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400/70">
-              {steps[currentStepIdx]?.sublabel || "Initializing…"}
+        {/* ── Progress track ── */}
+        <div className="w-full space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-indigo-300/60 uppercase tracking-widest">
+              {currentStep?.sublabel || "Initializing"}
+              <span className="text-indigo-400/40">{dots}</span>
             </span>
-            <span className="text-xl font-black text-white tabular-nums font-mono">
-              {Math.round(progress)}
-              <span className="text-sm text-white/30 ml-0.5">%</span>
+            <span className="text-base font-black text-white font-mono tabular-nums">
+              {Math.round(progress)}<span className="text-xs text-white/25 ml-0.5">%</span>
             </span>
           </div>
-          <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden">
-            {/* Animated shimmer */}
+
+          {/* Track */}
+          <div className="relative h-2 w-full rounded-full bg-white/[0.04] border border-white/[0.06] overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 rounded-full transition-all duration-75"
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 shadow-[0_0_16px_rgba(99,102,241,0.6)] transition-all duration-100"
               style={{ width: `${progress}%` }}
             />
+            {/* Shimmer */}
             <div
-              className="absolute inset-y-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-20 rounded-full"
-              style={{ left: `${Math.max(0, progress - 10)}%`, transition: "left 0.1s linear" }}
+              className="absolute inset-y-0 w-16 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              style={{ left: `${Math.max(0, progress - 8)}%`, transition: "left 0.1s linear" }}
             />
+          </div>
+
+          {/* Step dots row */}
+          <div className="flex items-center justify-between px-1">
+            {steps.map((s, i) => (
+              <div key={s.id} className="flex items-center gap-1">
+                <div className={`transition-all duration-500 rounded-full ${
+                  s.status === "complete"
+                    ? "w-2.5 h-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                    : s.status === "loading"
+                    ? "w-2.5 h-2.5 bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.9)] animate-pulse"
+                    : "w-2 h-2 bg-white/10"
+                }`} />
+                {i < steps.length - 1 && (
+                  <div className={`h-px flex-1 transition-all duration-700 ${
+                    i < currentStepIdx ? "bg-emerald-400/40" : "bg-white/5"
+                  }`} style={{ width: "18px" }} />
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
         {/* ── Step Cards ── */}
-        <div className="w-full grid grid-cols-1 sm:grid-cols-5 gap-2">
-          {steps.map((step, i) => {
+        <div className="w-full grid grid-cols-5 gap-1.5">
+          {steps.map((step) => {
             const Icon = step.icon
             const isComplete = step.status === "complete"
             const isActive = step.status === "loading"
             return (
               <div
                 key={step.id}
-                className={`flex sm:flex-col items-center sm:items-center gap-3 sm:gap-2 px-4 sm:px-3 py-3 sm:py-4 rounded-2xl border transition-all duration-500 ${
+                className={`relative flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border transition-all duration-500 overflow-hidden ${
                   isComplete
-                    ? "bg-indigo-950/30 border-indigo-500/20 scale-100"
+                    ? "bg-white/[0.03] border-white/10"
                     : isActive
-                    ? "bg-slate-900/60 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.08)] scale-[1.03]"
-                    : "bg-white/[0.01] border-white/5 opacity-30"
+                    ? "bg-indigo-950/50 border-indigo-500/40 scale-[1.05]"
+                    : "bg-white/[0.01] border-white/[0.04] opacity-40"
                 }`}
               >
-                <div
-                  className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 ${
-                    isComplete ? "bg-indigo-500/15 shadow-[0_0_10px_rgba(99,102,241,0.2)]" :
-                    isActive ? "bg-cyan-500/10 animate-pulse" : "bg-white/5"
-                  }`}
-                  style={{ color: isComplete ? step.color : isActive ? "#22d3ee" : "#374151" }}
-                >
-                  <Icon className="w-4 h-4" />
+                {/* Glow layer for active */}
+                {isActive && (
+                  <div className="absolute inset-0 bg-indigo-500/5 rounded-2xl" />
+                )}
+                <div className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 ${
+                  isComplete ? "bg-emerald-500/10" : isActive ? "bg-indigo-500/15 animate-pulse" : "bg-white/5"
+                }`}>
+                  {isComplete
+                    ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    : <Icon className={`w-4 h-4 ${isActive ? step.accent : "text-white/20"}`} />
+                  }
                 </div>
-                <div className="sm:text-center">
-                  <p className={`text-[10px] font-black uppercase tracking-wider leading-none mb-0.5 ${
-                    isComplete ? "text-indigo-300" : isActive ? "text-cyan-300" : "text-white/20"
-                  }`}>
-                    {step.label}
-                  </p>
-                  {isComplete && (
-                    <div className="flex sm:justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
-                    </div>
-                  )}
-                </div>
+                <p className={`text-[8px] font-black uppercase tracking-wide text-center leading-none ${
+                  isComplete ? "text-emerald-300/70" : isActive ? step.accent : "text-white/15"
+                }`}>
+                  {step.label}
+                </p>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-6 text-center z-10">
-        <p className="text-[8px] tracking-[0.5em] uppercase font-black text-white/15 font-mono">
-          SECURE · ENCRYPTED · LIVE
-        </p>
+      {/* ── Bottom status bar ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-white/[0.04] bg-black/20 backdrop-blur-xl px-8 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse" />
+            <span className="text-[8px] font-black tracking-[0.3em] uppercase text-white/20">Live</span>
+          </div>
+          <span className="text-[8px] font-black tracking-[0.25em] uppercase text-white/10">·</span>
+          <span className="text-[8px] font-black tracking-[0.25em] uppercase text-white/10">Secure</span>
+          <span className="text-[8px] font-black tracking-[0.25em] uppercase text-white/10">·</span>
+          <span className="text-[8px] font-black tracking-[0.25em] uppercase text-white/10">Encrypted</span>
+        </div>
+        <span className="text-[8px] font-black tracking-[0.3em] uppercase text-white/10 font-mono">
+          PROTOOL v3.0-TURBO
+        </span>
       </div>
     </div>
   )

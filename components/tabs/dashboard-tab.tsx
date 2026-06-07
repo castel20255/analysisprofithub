@@ -5,7 +5,7 @@ import { useDerivAPI } from "@/lib/deriv-api-context"
 import { useDerivAuth } from "@/hooks/use-deriv-auth"
 import { DerivWebSocketManager } from "@/lib/deriv-websocket-manager"
 import dynamic from "next/dynamic"
-const DerivSmartChart = dynamic(() => import("@/components/DerivSmartChart"), { ssr: false });
+import DerivSmartChart from "@/components/DerivSmartChart"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
