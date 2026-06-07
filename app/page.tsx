@@ -55,6 +55,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 export default function DerivAnalysisApp() {
   const [theme, setTheme] = useState<"light" | "dark">("dark")
@@ -254,33 +261,56 @@ export default function DerivAnalysisApp() {
 
                   <DerivAuth theme={theme} />
 
-                  <div className="sm:hidden -ml-1">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className={`h-9 w-9 rounded-lg ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+                  {/* Unified Hamburger Sheet containing Dashboard and mobile links */}
+                  <div className="flex items-center">
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-9 w-9 rounded-lg transition-all ${
+                            theme === "dark" 
+                              ? "bg-white/5 text-white hover:bg-white/10" 
+                              : "bg-black/5 text-slate-900 hover:bg-black/10"
+                          }`}
+                        >
                           <Menu className="h-5 w-5" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className={`w-48 ${theme === "dark" ? "bg-[#0a0e27] border-white/10" : ""}`}>
-                        <DropdownMenuItem asChild>
-                          <Link href="/account" className="flex items-center gap-2 w-full cursor-pointer p-3">
-                            <User className="h-4 w-4" />
-                            <span>Account</span>
+                      </SheetTrigger>
+                      <SheetContent
+                        side="right"
+                        className={`w-full sm:max-w-2xl border-l overflow-y-auto ${
+                          theme === "dark" 
+                            ? "bg-[#0b0f19] text-white border-white/10" 
+                            : "bg-white text-slate-900 border-slate-200"
+                        } p-0`}
+                      >
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                          <SheetTitle className={theme === "dark" ? "text-white text-xl font-black uppercase tracking-tight" : "text-slate-900 text-xl font-black uppercase tracking-tight"}>
+                            Dashboard Hub
+                          </SheetTitle>
+                        </div>
+                        
+                        {/* Mobile quick actions at the top of the sidebar */}
+                        <div className="sm:hidden flex items-center justify-around gap-2 p-4 border-b border-white/5 bg-slate-950/25">
+                          <Link href="/account" className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full text-[10px] font-bold h-8">
+                              <User className="h-3 w-3 mr-1" /> Account
+                            </Button>
                           </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowRiskModal(true)} className="flex items-center gap-2 cursor-pointer p-3">
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                          <span>Risk Disclaimer</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className={theme === "dark" ? "bg-white/10" : ""} />
-                        <DropdownMenuItem onClick={toggleTheme} className="flex items-center justify-between cursor-pointer p-3">
-                          <span className="flex items-center gap-2">
-                            {theme === "dark" ? <Sun className="h-4 w-4 text-yellow-500" /> : <Moon className="h-4 w-4" />}
-                            <span>Theme</span>
-                          </span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Button variant="outline" size="sm" onClick={() => setShowRiskModal(true)} className="flex-1 text-[10px] font-bold h-8">
+                            <AlertTriangle className="h-3 w-3 mr-1" /> Risk
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={toggleTheme} className="flex-1 text-[10px] font-bold h-8">
+                            {theme === "dark" ? <Sun className="h-3 w-3 mr-1" /> : <Moon className="h-3.5 w-3.5 mr-1" />} Theme
+                          </Button>
+                        </div>
+
+                        <div className="p-6">
+                          <DashboardTab theme={theme} />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
                   </div>
                 </div>
               </div>
@@ -295,7 +325,6 @@ export default function DerivAnalysisApp() {
                     <div className="overflow-x-auto no-scrollbar flex">
                       <ResponsiveTabs theme={theme} value={activeTab} onValueChange={setActiveTab}>
                         {[
-                          "dashboard",
                           "smart-adaptive",
                           "smart-analysis",
                           "smartauto24",
@@ -565,21 +594,21 @@ export default function DerivAnalysisApp() {
                     <div
                       className={`rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-4 border ${theme === "dark" ? "bg-linear-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]" : "bg-white border-gray-200 shadow-lg"}`}
                     >
-                      <StatisticalAnalysis analysis={analysis} recentDigits={recent100Digits} theme={theme} />
+                      <h3
+                        className={`text-sm sm:text-base md:text-lg font-bold mb-3 sm:mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
+                      >
+                        Last 20 Digits Chart
+                      </h3>
+                      <LastDigitsChart digits={recentDigits} />
                     </div>
                   </div>
                 )}
 
-                {recentDigits.length > 0 && (
+                {analysis && recent100Digits.length > 0 && (
                   <div
-                    className={`rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border ${theme === "dark" ? "bg-linear-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]" : "bg-white border-gray-200 shadow-lg"}`}
+                    className={`rounded-lg sm:rounded-xl p-6 border ${theme === "dark" ? "bg-linear-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]" : "bg-white border-gray-200 shadow-lg"}`}
                   >
-                    <h3
-                      className={`text-sm sm:text-base md:text-lg font-bold mb-3 sm:mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
-                    >
-                      Last 20 Digits Chart
-                    </h3>
-                    <LastDigitsChart digits={recentDigits} />
+                    <StatisticalAnalysis analysis={analysis} recentDigits={recent100Digits} theme={theme} />
                   </div>
                 )}
 

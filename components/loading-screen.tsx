@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Shield, Zap, Globe, Cpu, Rocket, Activity } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Shield, Zap, Globe, Cpu, Rocket, Activity, Wifi } from "lucide-react"
 
 interface LoadingStep {
   id: string
   label: string
+  sublabel: string
   status: "pending" | "loading" | "complete"
   icon: any
+  color: string
 }
 
 interface LoadingScreenProps {
@@ -17,294 +18,245 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const [progress, setProgress] = useState(0)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [currentStepIdx, setCurrentStepIdx] = useState(-1)
+  const [showMain, setShowMain] = useState(false)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
   const [steps, setSteps] = useState<LoadingStep[]>([
-    { id: "connect", label: "Establishing Secure Link", status: "pending", icon: Globe },
-    { id: "markets", label: "Calibrating Market Feeds", status: "pending", icon: Zap },
-    { id: "analyze", label: "Quantum Analysis Engaged", status: "pending", icon: Cpu },
-    { id: "account", label: "Verifying Authentication", status: "pending", icon: Shield },
-    { id: "finalize", label: "Launching Interface", status: "pending", icon: Rocket },
+    { id: "connect", label: "Secure Connection", sublabel: "Establishing encrypted WebSocket", status: "pending", icon: Globe, color: "#6366f1" },
+    { id: "markets", label: "Market Feeds", sublabel: "Calibrating live data streams", status: "pending", icon: Wifi, color: "#06b6d4" },
+    { id: "analyze", label: "Quantum Engine", sublabel: "Initializing analysis modules", status: "pending", icon: Cpu, color: "#8b5cf6" },
+    { id: "account", label: "Authentication", sublabel: "Verifying secure credentials", status: "pending", icon: Shield, color: "#10b981" },
+    { id: "finalize", label: "Interface Ready", sublabel: "Launching trading terminal", status: "pending", icon: Rocket, color: "#f59e0b" },
   ])
 
-  // Canvas particle logic for premium background
+  // ── Canvas particles ────────────────────────────────────────────────
   useEffect(() => {
-    const canvas = document.getElementById("loading-canvas") as HTMLCanvasElement
+    const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    let animationFrameId: number
-    let width = (canvas.width = window.innerWidth)
-    let height = (canvas.height = window.innerHeight)
+    let raf: number
+    let W = canvas.width = window.innerWidth
+    let H = canvas.height = window.innerHeight
 
-    const particles: Array<{ x: number; y: number; vx: number; vy: number; radius: number }> = []
-    const particleCount = 50
+    type Particle = { x: number; y: number; vx: number; vy: number; r: number; hue: number; alpha: number }
+    const particles: Particle[] = Array.from({ length: 80 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      r: Math.random() * 1.8 + 0.4,
+      hue: Math.random() > 0.5 ? 245 : 195,
+      alpha: Math.random() * 0.25 + 0.05,
+    }))
 
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        radius: Math.random() * 2 + 1,
-      })
+    const onResize = () => {
+      W = canvas.width = window.innerWidth
+      H = canvas.height = window.innerHeight
     }
-
-    const handleResize = () => {
-      if (!canvas) return
-      width = canvas.width = window.innerWidth
-      height = canvas.height = window.innerHeight
-    }
-    window.addEventListener("resize", handleResize)
+    window.addEventListener("resize", onResize)
 
     const draw = () => {
-      ctx.clearRect(0, 0, width, height)
-      ctx.fillStyle = "rgba(99, 102, 241, 0.15)"
-      ctx.strokeStyle = "rgba(99, 102, 241, 0.04)"
-
-      particles.forEach((p, idx) => {
-        p.x += p.vx
-        p.y += p.vy
-
-        if (p.x < 0 || p.x > width) p.vx *= -1
-        if (p.y < 0 || p.y > height) p.vy *= -1
-
+      ctx.clearRect(0, 0, W, H)
+      particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy
+        if (p.x < 0 || p.x > W) p.vx *= -1
+        if (p.y < 0 || p.y > H) p.vy *= -1
         ctx.beginPath()
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, ${p.alpha})`
         ctx.fill()
-
-        for (let j = idx + 1; j < particles.length; j++) {
-          const p2 = particles[j]
-          const dist = Math.hypot(p.x - p2.x, p.y - p2.y)
-          if (dist < 150) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j]
+          const d = Math.hypot(p.x - q.x, p.y - q.y)
+          if (d < 130) {
             ctx.beginPath()
             ctx.moveTo(p.x, p.y)
-            ctx.lineTo(p2.x, p2.y)
+            ctx.lineTo(q.x, q.y)
+            ctx.strokeStyle = `hsla(240, 80%, 65%, ${0.08 * (1 - d / 130)})`
+            ctx.lineWidth = 0.5
             ctx.stroke()
           }
         }
       })
-
-      animationFrameId = requestAnimationFrame(draw)
+      raf = requestAnimationFrame(draw)
     }
-
     draw()
-
-    return () => {
-      window.removeEventListener("resize", handleResize)
-      cancelAnimationFrame(animationFrameId)
-    }
+    return () => { window.removeEventListener("resize", onResize); cancelAnimationFrame(raf) }
   }, [])
 
-  useEffect(() => {
-    const sequence = async () => {
-      // Phase 0: Initializing Glow
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      setIsInitializing(false)
+  const progressRef = useRef(0)
 
-      // Phase 1: Progressive Loading
+  // ── Loading sequence ────────────────────────────────────────────────
+  useEffect(() => {
+    const animateTo = (target: number, ms: number) =>
+      new Promise<void>(res => {
+        const from = progressRef.current
+        const start = Date.now()
+        const tick = () => {
+          const elapsed = Math.min((Date.now() - start) / ms, 1)
+          const eased = 1 - Math.pow(1 - elapsed, 3)
+          const current = from + (target - from) * eased
+          progressRef.current = current
+          setProgress(current)
+          if (elapsed < 1) requestAnimationFrame(tick)
+          else res()
+        }
+        requestAnimationFrame(tick)
+      })
+
+    const sequence = async () => {
+      await new Promise(r => setTimeout(r, 700))
+      setShowMain(true)
+
       for (let i = 0; i < steps.length; i++) {
+        setCurrentStepIdx(i)
         setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, status: "loading" } : s))
-        const stepProgress = (i + 1) * (100 / steps.length)
-        await animateTo(stepProgress, 800)
+        await animateTo((i + 1) * (100 / steps.length), 650)
         setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, status: "complete" } : s))
+        await new Promise(r => setTimeout(r, 120))
       }
 
-      await new Promise(resolve => setTimeout(resolve, 800))
+      await new Promise(r => setTimeout(r, 500))
       onComplete()
     }
 
     sequence()
   }, [])
 
-  const animateTo = (target: number, duration: number) => {
-    return new Promise<void>(resolve => {
-      const start = progress
-      const startTime = Date.now()
-
-      const update = () => {
-        const elapsed = Date.now() - startTime
-        const ratio = Math.min(elapsed / duration, 1)
-        // Easy-out ease curve
-        const t = 1 - Math.pow(1 - ratio, 3)
-        const current = start + (target - start) * t
-        setProgress(current)
-        if (ratio < 1) requestAnimationFrame(update)
-        else resolve()
-      }
-      requestAnimationFrame(update)
-    })
-  }
-
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#05070f] overflow-hidden select-none">
-      {/* Canvas Particle Background */}
-      <canvas id="loading-canvas" className="absolute inset-0 z-0 pointer-events-none opacity-60" />
+    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#020408] select-none">
 
-      {/* Blurred glow shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-600/5 blur-[150px] rounded-full animate-pulse" style={{ animationDelay: "2s" }} />
+      {/* Canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
+
+      {/* Ambient Glows */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 blur-[160px] rounded-full" />
+        <div className="absolute -top-20 -right-20 w-96 h-96 bg-cyan-500/5 blur-[120px] rounded-full" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-violet-600/5 blur-[120px] rounded-full" />
+        {/* Grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(99,102,241,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.5) 1px, transparent 1px)`,
+            backgroundSize: "60px 60px"
+          }}
+        />
       </div>
 
-      <div className="w-full max-w-4xl z-10 px-6 sm:px-8 flex flex-col items-center">
-        <AnimatePresence mode="wait">
-          {isInitializing ? (
-            <motion.div
-              key="init"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col items-center justify-center space-y-6"
-            >
-              <div className="relative flex items-center justify-center">
-                {/* Advanced spinner rings */}
-                <div className="w-24 h-24 border-2 border-indigo-500/20 border-t-indigo-500 border-r-indigo-500 rounded-full animate-spin" />
-                <div className="absolute w-18 h-18 border border-cyan-500/20 border-b-cyan-400 border-l-cyan-400 rounded-full animate-[spin_1.5s_linear_infinite_reverse]" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Activity className="w-8 h-8 text-cyan-400 animate-pulse" />
+      <div className="relative z-10 w-full max-w-2xl px-6 flex flex-col items-center">
+
+        {/* ── Central Orb ── */}
+        <div className="relative w-40 h-40 flex items-center justify-center mb-10">
+          {/* Outermost ping ring */}
+          <div className="absolute inset-0 rounded-full border border-indigo-500/10 animate-ping" style={{ animationDuration: "3s" }} />
+          {/* Dashed slow spin ring */}
+          <div className="absolute w-36 h-36 border border-dashed border-indigo-500/20 rounded-full" style={{ animation: "spin 50s linear infinite" }} />
+          {/* Fast inner ring */}
+          <div className="absolute w-28 h-28 border border-cyan-400/30 rounded-full" style={{ animation: "spin 10s linear infinite reverse" }} />
+          {/* Medium ring */}
+          <div className="absolute w-32 h-32 border border-violet-500/20 rounded-full" style={{ animation: "spin 22s linear infinite" }} />
+          {/* Glowing core */}
+          <div className="absolute w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-600/40 via-blue-500/30 to-cyan-400/20 blur-xl animate-pulse" />
+          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-[0_0_40px_rgba(99,102,241,0.5)] border border-white/10">
+            <Activity className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          {/* Orbiting dot */}
+          <div className="absolute w-full h-full" style={{ animation: "spin 5s linear infinite" }}>
+            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+          </div>
+        </div>
+
+        {/* ── Brand ── */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-[-0.04em] text-white uppercase leading-none">
+            ANALYSIS
+            <span className="bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(99,102,241,0.4)]">
+              TOOLPRO
+            </span>
+          </h1>
+          <p className="mt-3 text-[9px] sm:text-[10px] font-black tracking-[0.4em] text-white/25 uppercase">
+            Quantum Analytics Engine · v4.5
+          </p>
+        </div>
+
+        {/* ── Progress Bar ── */}
+        <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 mb-8 backdrop-blur-xl">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-indigo-400/70">
+              {steps[currentStepIdx]?.sublabel || "Initializing…"}
+            </span>
+            <span className="text-xl font-black text-white tabular-nums font-mono">
+              {Math.round(progress)}
+              <span className="text-sm text-white/30 ml-0.5">%</span>
+            </span>
+          </div>
+          <div className="relative h-1 w-full bg-white/5 rounded-full overflow-hidden">
+            {/* Animated shimmer */}
+            <div
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 rounded-full transition-all duration-75"
+              style={{ width: `${progress}%` }}
+            />
+            <div
+              className="absolute inset-y-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-20 rounded-full"
+              style={{ left: `${Math.max(0, progress - 10)}%`, transition: "left 0.1s linear" }}
+            />
+          </div>
+        </div>
+
+        {/* ── Step Cards ── */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-5 gap-2">
+          {steps.map((step, i) => {
+            const Icon = step.icon
+            const isComplete = step.status === "complete"
+            const isActive = step.status === "loading"
+            return (
+              <div
+                key={step.id}
+                className={`flex sm:flex-col items-center sm:items-center gap-3 sm:gap-2 px-4 sm:px-3 py-3 sm:py-4 rounded-2xl border transition-all duration-500 ${
+                  isComplete
+                    ? "bg-indigo-950/30 border-indigo-500/20 scale-100"
+                    : isActive
+                    ? "bg-slate-900/60 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.08)] scale-[1.03]"
+                    : "bg-white/[0.01] border-white/5 opacity-30"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 shrink-0 rounded-xl flex items-center justify-center transition-all duration-500 ${
+                    isComplete ? "bg-indigo-500/15 shadow-[0_0_10px_rgba(99,102,241,0.2)]" :
+                    isActive ? "bg-cyan-500/10 animate-pulse" : "bg-white/5"
+                  }`}
+                  style={{ color: isComplete ? step.color : isActive ? "#22d3ee" : "#374151" }}
+                >
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="sm:text-center">
+                  <p className={`text-[10px] font-black uppercase tracking-wider leading-none mb-0.5 ${
+                    isComplete ? "text-indigo-300" : isActive ? "text-cyan-300" : "text-white/20"
+                  }`}>
+                    {step.label}
+                  </p>
+                  {isComplete && (
+                    <div className="flex sm:justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="text-center">
-                <h2 className="text-sm font-black tracking-[0.4em] text-white/80 uppercase">Initializing System</h2>
-                <p className="text-[9px] font-black text-indigo-400/50 tracking-[0.6em] mt-2 uppercase">Protocol v2.0</p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="w-full flex flex-col items-center"
-            >
-              {/* Branding Section */}
-              <div className="text-center mb-12 sm:mb-16">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.1, type: "spring", stiffness: 100 }}
-                  className="mb-6 flex justify-center"
-                >
-                  <div className="relative w-16 h-16 flex items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/10 to-blue-500/5 border border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.1)]">
-                    <Activity className="w-9 h-9 text-indigo-400 drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
-                  </div>
-                </motion.div>
-                
-                <motion.h1
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-3xl sm:text-5xl font-black tracking-tight text-white uppercase"
-                >
-                  ANALYSIS<span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent text-glow">TOOLPRO</span>
-                </motion.h1>
-                
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.5 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-[10px] sm:text-xs text-indigo-200 tracking-[0.4em] uppercase mt-2 font-bold"
-                >
-                  Universal Intelligent Trading Terminal
-                </motion.p>
-                
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "80px" }}
-                  transition={{ delay: 0.4 }}
-                  className="h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent mx-auto mt-4"
-                />
-              </div>
-
-              {/* Glassmorphic Step Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 w-full mb-10 sm:mb-14">
-                {steps.map((step, idx) => {
-                  const Icon = step.icon
-                  const isComplete = step.status === "complete"
-                  const isLoading = step.status === "loading"
-                  return (
-                    <motion.div
-                      key={step.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 + 0.3 }}
-                      className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-500 overflow-hidden backdrop-blur-md group ${
-                        isComplete
-                          ? "bg-indigo-950/20 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]"
-                          : isLoading
-                            ? "bg-slate-900/80 border-indigo-400 shadow-[0_0_25px_rgba(99,102,241,0.15)] scale-105 z-10"
-                            : "bg-white/[0.01] border-white/5 opacity-30"
-                      } ${idx === 4 && steps.length % 2 !== 0 ? "col-span-2 sm:col-span-1" : ""}`}
-                    >
-                      {/* Top highlight bar */}
-                      {isLoading && (
-                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 to-cyan-400" />
-                      )}
-
-                      <div className="flex flex-col items-center text-center space-y-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                          isComplete ? "bg-indigo-500/10 text-indigo-400" :
-                          isLoading ? "bg-indigo-500/20 text-cyan-400" : "text-white/20"
-                        }`}>
-                          <Icon className={`h-5 w-5 ${isLoading ? "animate-pulse" : ""}`} />
-                        </div>
-                        <div>
-                          <h3 className={`text-[10px] font-black uppercase tracking-wider ${
-                            isLoading ? "text-cyan-400" : isComplete ? "text-white/95" : "text-white/40"
-                          }`}>
-                            {step.label.split(' ')[0]}
-                          </h3>
-                          <p className="text-[8px] text-white/30 truncate mt-0.5 leading-none">
-                            {step.label.split(' ').slice(1).join(' ')}
-                          </p>
-                        </div>
-                      </div>
-
-                      {isLoading && (
-                        <div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-indigo-500 to-cyan-400 animate-[loading-bar_1.5s_infinite]" style={{ width: "100%" }} />
-                      )}
-                    </motion.div>
-                  )
-                })}
-              </div>
-
-              {/* Progress HUD */}
-              <div className="w-full max-w-md bg-white/[0.02] border border-white/5 p-5 rounded-2xl backdrop-blur-md">
-                <div className="flex justify-between items-baseline mb-2">
-                  <span className="text-[9px] font-black text-indigo-400/80 tracking-[0.2em] uppercase">Boot Sequence</span>
-                  <span className="text-xl font-black text-white tracking-tighter tabular-nums italic">
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-blue-500 to-cyan-400 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="absolute bottom-8 text-center opacity-40 z-10">
-        <p className="text-[8px] text-indigo-300 uppercase tracking-[0.5em] font-black">
-          Secured by Quantum Shield
+      {/* Footer */}
+      <div className="absolute bottom-6 text-center z-10">
+        <p className="text-[8px] tracking-[0.5em] uppercase font-black text-white/15 font-mono">
+          SECURE · ENCRYPTED · LIVE
         </p>
       </div>
-
-      <style jsx global>{`
-        .text-glow {
-          text-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
-        }
-        @keyframes loading-bar {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
     </div>
   )
 }

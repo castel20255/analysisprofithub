@@ -15,7 +15,7 @@ import { User, ReceiptText, BarChart3, PieChart, ShieldCheck, ArrowLeft, Home, T
 import Link from "next/link"
 
 export default function AccountPage() {
-    const { isLoggedIn, accountType, activeLoginId, isInitializing } = useDerivAPI()
+    const { isLoggedIn, accountType, activeLoginId, isInitializing, balance, accounts } = useDerivAPI()
     const [activeTab, setActiveTab] = useState("details")
     const [mounted, setMounted] = useState(false)
 
@@ -131,9 +131,9 @@ export default function AccountPage() {
                         <TabsContent value="details" className="mt-0 focus-visible:outline-none">
                             <AccountDetails
                                 activeLoginId={activeLoginId}
-                                balance={null}
+                                balance={balance}
                                 accountType={accountType}
-                                accounts={[]}
+                                accounts={accounts}
                             />
                         </TabsContent>
 

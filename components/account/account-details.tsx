@@ -299,7 +299,7 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
                             <p className="text-gray-500 text-sm mt-2 max-w-sm font-medium">Authorize your Deriv endpoint to synchronize your global asset performance metadata.</p>
                         </div>
                     ) : accounts.map(acc => {
-                        const grad = getGradient(acc.type, acc.currency ?? "USD")
+                        const grad = getGradient(acc.type ?? "Demo", acc.currency ?? "USD")
                         const isActive = acc.id === activeLoginId
                         return (
                             <div key={acc.id} className={`group relative flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-500 ${
@@ -327,7 +327,7 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
                                                 : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                                             }`}>
                                                 {isActive && <span className="inline-block w-1 h-1 rounded-full bg-current mr-1 animate-pulse" />}
-                                                {acc.type.toUpperCase()}
+                                                {(acc.type || "DEMO").toUpperCase()}
                                             </div>
                                             <span className="text-[10px] font-black text-white/30 tracking-widest">{acc.currency}</span>
                                         </div>
@@ -340,9 +340,10 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
                                         <h4 className={`text-2xl font-black tabular-nums transition-all ${isActive ? "text-white scale-110" : "text-white/80"}`}>
                                             {(() => {
                                                 const fetched = accountBalances[acc.id]
-                                                const bal = fetched !== undefined ? fetched
+                                                const rawBal = fetched !== undefined ? fetched
                                                     : (acc.id === activeLoginId ? (balance?.amount ?? acc.balance ?? 0) : (acc.balance ?? 0))
-                                                return formatCurrency(bal ?? 0, acc.currency || "USD")
+                                                const bal = (rawBal == null || isNaN(Number(rawBal))) ? 0 : Number(rawBal)
+                                                return formatCurrency(bal, acc.currency || "USD")
                                             })()}
                                         </h4>
                                     )}
