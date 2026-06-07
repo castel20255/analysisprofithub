@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useDerivAPI } from "@/lib/deriv-api-context"
 import { useDerivAuth } from "@/hooks/use-deriv-auth"
 import { DerivWebSocketManager } from "@/lib/deriv-websocket-manager"
+import dynamic from "next/dynamic"
+const DerivSmartChart = dynamic(() => import("@/components/DerivSmartChart"), { ssr: false });
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -102,17 +104,19 @@ export function DashboardTab({ theme = "dark" }: DashboardTabProps) {
       }
 
       if (data.msg_type === "tick") {
-        const tick = data.tick
-        setMarketData((prev) => ({
-          ...prev,
-          [tick.symbol]: {
-            bid: tick.bid,
-            ask: tick.ask,
-            quote: tick.quote,
-            epoch: tick.epoch,
-          },
-        }))
-      }
+          const tick = data.tick;
+          if (tick && tick.symbol) {
+            setMarketData((prev) => ({
+              ...prev,
+              [tick.symbol]: {
+                bid: tick.bid,
+                ask: tick.ask,
+                quote: tick.quote,
+                epoch: tick.epoch,
+              },
+            }));
+          }
+        }
     }
 
     manager.on("*", handleMessage)
@@ -172,6 +176,8 @@ export function DashboardTab({ theme = "dark" }: DashboardTabProps) {
   return (
     <div className={`space-y-8 p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-700`}>
       {/* ─── Premium Header Stat Cards ─── */}
+      <DerivSmartChart symbol="R_100" />
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* API Connection Card */}

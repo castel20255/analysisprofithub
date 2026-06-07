@@ -1039,11 +1039,12 @@ export class DerivWebSocketManager {
           : JSON.stringify(lastError))
     const errCode = lastError?.error?.code || lastError?.code || 'unknown'
     // Only log as error for truly unexpected failures; symbol-not-found is expected for some markets
-    if (errCode === 'SymbolNotFound' || errCode === 'MarketIsClosed' || errCode === 'unknown') {
-      console.warn(`[v0] subscribeTicks: ${cleanSymbol} not available (${errCode}): ${errMsg}`)
-    } else {
-      console.error(`[v0] Failed to subscribe to ${cleanSymbol}: [${errCode}] ${errMsg}`)
-    }
+    if (['SymbolNotFound', 'MarketIsClosed', 'InvalidSymbol', 'unknown'].includes(errCode)) {
+  console.warn(`[v0] subscribeTicks: ${cleanSymbol} not available (${errCode}): ${errMsg}`);
+} else {
+  console.error(`[v0] Failed to subscribe to ${cleanSymbol}: [${errCode}] ${errMsg}`);
+}
+
     return ""
   }
 

@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "clean": "npx rimraf .next .next_build",
+    "dev:clean": "npm run clean && npm run dev",
     "build": "next build",
     "dev": "next dev",
     "lint": "eslint .",
@@ -11,6 +13,8 @@
   },
   "dependencies": {
     "@deriv-com/smartcharts-champion": "^1.3.14",
+    "rimraf": "^5.0.5",
+    "deriv-smartcharts": "git+https://github.com/deriv-com/deriv-smartcharts.git",
     "@deriv/deriv-api": "latest",
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.10.0",
