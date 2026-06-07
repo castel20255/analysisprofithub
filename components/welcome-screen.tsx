@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import React, { useEffect, useState } from "react";
 import { TrendingUp, ArrowRight, Zap, Shield, BarChart2 } from "lucide-react";
-import DerivSmartChart from "./DerivSmartChart";
+
 import ActiveSymbols from "@/components/ActiveSymbols";
 
 export interface WelcomeScreenProps {
@@ -120,8 +120,7 @@ export default function WelcomeScreen({ onContinue }: WelcomeScreenProps) {
           ))}
         </motion.div>
 
-        {/* Smart Chart */}
-        <DerivSmartChart />
+        {/* Charts removed */}
         <ActiveSymbols />
         <motion.div
           className="aph-progress-wrap"

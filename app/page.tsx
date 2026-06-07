@@ -37,8 +37,10 @@ import { useGlobalTradingContext } from "@/hooks/use-global-trading-context"
 import { verifier } from "@/lib/system-verifier"
 import { ResponsiveTabs } from "@/components/responsive-tabs"
 import { MoneyMakerTab } from "@/components/tabs/money-maker-tab"
+import type { Variants } from 'framer-motion';
 import { ToolsInfoTab } from "@/components/tabs/tools-info-tab"
 import SmartAdaptiveTradingTab from "@/components/tabs/smart-adaptive-trading"
+import { DashboardTab } from "@/components/tabs";
 import { RiskDisclaimerModal } from "@/components/modals/risk-disclaimer-modal"
 import { MarketSelector } from "@/components/market-selector"
 
@@ -46,7 +48,7 @@ import { FloatingAIScanner } from "@/components/floating-ai-scanner"
 import { LiveChat } from "@/components/live-chat"
 import { ApiTokenModal } from "@/components/api-token-modal"
 import { useDerivAuth } from "@/hooks/use-deriv-auth"
-import { DashboardTab } from "@/components/tabs/dashboard-tab"
+
 import {
   Dialog,
   DialogContent,
@@ -79,6 +81,19 @@ export default function DerivAnalysisApp() {
   })
   const globalContext = useGlobalTradingContext()
   const { showTokenModal, submitApiToken, loginWithDeriv, loginWithDerivLegacy } = useDerivAuth()
+
+  const itemVariants: Variants = {
+    hidden: { y: 15, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
+  }
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08 }
+    }
+  }
 
   // Wrapper to ensure OAuth login is properly triggered
   const handleOAuthLogin = () => {
@@ -306,10 +321,7 @@ export default function DerivAnalysisApp() {
                           </Button>
                         </div>
 
-                        <div className="p-6">
-                          {/* <DashboardTab theme={theme} /> */}
-                          <div className="text-center text-sm text-slate-500 py-10">SmartCharts disabled temporarily</div>
-                        </div>
+
                       </SheetContent>
                     </Sheet>
                   </div>
@@ -326,6 +338,7 @@ export default function DerivAnalysisApp() {
                     <div className="overflow-x-auto no-scrollbar flex">
                       <ResponsiveTabs theme={theme} value={activeTab} onValueChange={setActiveTab}>
                         {[
+                          "dashboard",
                           "smart-adaptive",
                           "smart-analysis",
                           "smartauto24",
@@ -598,9 +611,9 @@ export default function DerivAnalysisApp() {
                       <h3
                         className={`text-sm sm:text-base md:text-lg font-bold mb-3 sm:mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
                       >
-                        Last 20 Digits Chart
+                        Last 50 Digits Chart
                       </h3>
-                      <LastDigitsChart digits={recentDigits} />
+                      <LastDigitsChart digits={recent50Digits} />
                     </div>
                   </div>
                 )}

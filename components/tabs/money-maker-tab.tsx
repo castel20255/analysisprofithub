@@ -61,7 +61,7 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
     totalTrades: 0,
   })
 
-  const last20Digits = recentDigits.slice(-20)
+  const lastDigits = recentDigits.slice(-50)
 
   useEffect(() => {
     if (signal.status === "EXIT" && signal.totalTrades > 0) {
@@ -372,7 +372,7 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
         )}
       </div>
 
-      {last20Digits.length > 0 && (
+      {lastDigits.length > 0 && (
         <div
           className={`rounded-xl p-6 border ${theme === "dark"
             ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
@@ -380,9 +380,9 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
             }`}
         >
           <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Last 20 Digits
+            Last Digits Chart
           </h3>
-          <LastDigitsChart digits={last20Digits} />
+          <LastDigitsChart digits={lastDigits} />
         </div>
       )}
 
