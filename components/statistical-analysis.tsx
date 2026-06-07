@@ -174,7 +174,7 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
             {/* Dual gauge */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Under card */}
-              <div className="group relative rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-5 overflow-hidden transition-all hover:border-emerald-500/30">
+              <div className="group relative rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-4 overflow-hidden transition-all hover:border-emerald-500/30">
                 <div className="absolute top-0 right-0 p-3 opacity-5 rotate-12 scale-150"><TrendingDown className="h-12 w-12 text-emerald-400" /></div>
                 <div className="relative space-y-3">
                   <div className="flex items-center justify-between">
@@ -182,7 +182,7 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                       <p className="text-[10px] font-black text-emerald-400/60 uppercase tracking-widest">Under</p>
                       <p className="text-xs font-bold text-white/30">Digits 0 – 4</p>
                     </div>
-                    <span className="text-3xl font-black text-emerald-400 tabular-nums font-mono">
+                    <span className="text-2xl font-bold text-emerald-400 tabular-nums font-mono">
                       <LiveNumber value={overUnderStats.underPct} />%
                     </span>
                   </div>
@@ -214,7 +214,7 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               </div>
 
               {/* Over card */}
-              <div className="group relative rounded-2xl border border-indigo-500/15 bg-indigo-500/[0.03] p-5 overflow-hidden transition-all hover:border-indigo-500/30">
+              <div className="group relative rounded-2xl border border-indigo-500/15 bg-indigo-500/[0.03] p-4 overflow-hidden transition-all hover:border-indigo-500/30">
                 <div className="absolute top-0 right-0 p-3 opacity-5 rotate-12 scale-150"><TrendingUp className="h-12 w-12 text-indigo-400" /></div>
                 <div className="relative space-y-3">
                   <div className="flex items-center justify-between">
@@ -222,7 +222,7 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                       <p className="text-[10px] font-black text-indigo-400/60 uppercase tracking-widest">Over</p>
                       <p className="text-xs font-bold text-white/30">Digits 5 – 9</p>
                     </div>
-                    <span className="text-3xl font-black text-indigo-400 tabular-nums font-mono">
+                    <span className="text-2xl font-bold text-indigo-400 tabular-nums font-mono">
                       <LiveNumber value={overUnderStats.overPct} />%
                     </span>
                   </div>
@@ -281,13 +281,13 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Even */}
-              <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03] p-5 space-y-3">
+              <div className="rounded-2xl border border-cyan-500/15 bg-cyan-500/[0.03] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-black text-cyan-400/60 uppercase tracking-widest">Even</p>
                     <p className="text-xs font-bold text-white/30">0, 2, 4, 6, 8</p>
                   </div>
-                  <span className="text-3xl font-black text-cyan-400 tabular-nums font-mono">
+                  <span className="text-2xl font-bold text-cyan-400 tabular-nums font-mono">
                     <LiveNumber value={evenOddStats.evenPct} />%
                   </span>
                 </div>
@@ -301,13 +301,13 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                 </div>
               </div>
               {/* Odd */}
-              <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.03] p-5 space-y-3">
+              <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.03] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-black text-violet-400/60 uppercase tracking-widest">Odd</p>
                     <p className="text-xs font-bold text-white/30">1, 3, 5, 7, 9</p>
                   </div>
-                  <span className="text-3xl font-black text-violet-400 tabular-nums font-mono">
+                  <span className="text-2xl font-bold text-violet-400 tabular-nums font-mono">
                     <LiveNumber value={evenOddStats.oddPct} />%
                   </span>
                 </div>

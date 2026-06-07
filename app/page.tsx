@@ -307,7 +307,8 @@ export default function DerivAnalysisApp() {
                         </div>
 
                         <div className="p-6">
-                          <DashboardTab theme={theme} />
+                          {/* <DashboardTab theme={theme} /> */}
+                          <div className="text-center text-sm text-slate-500 py-10">SmartCharts disabled temporarily</div>
                         </div>
                       </SheetContent>
                     </Sheet>

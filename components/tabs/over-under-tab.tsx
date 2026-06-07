@@ -81,7 +81,7 @@ export function OverUnderTab({
         )
     }
 
-    const last20Digits = recentDigits.slice(-20)
+    const last50Digits = recentDigits.slice(-50)
     const analysisDigits = recentDigits // Use all available digits for analysis
 
     const calculateStreak = (digits: number[]) => {
@@ -478,7 +478,7 @@ export function OverUnderTab({
                 </div>
             </div>
 
-            {last20Digits.length > 0 && (
+            {last50Digits.length > 0 && (
                 <div
                     className={`rounded-xl p-6 border ${theme === "dark"
                         ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
@@ -486,13 +486,13 @@ export function OverUnderTab({
                         }`}
                 >
                     <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-                        Last 20 Digits
+                        Last 50 Digits
                     </h3>
-                    <LastDigitsChart digits={last20Digits} />
+                    <LastDigitsChart digits={last50Digits} />
                 </div>
             )}
 
-            {last20Digits.length > 0 && (
+            {last50Digits.length > 0 && (
                 <div
                     className={`rounded-xl p-6 border ${theme === "dark"
                         ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
@@ -502,7 +502,7 @@ export function OverUnderTab({
                     <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
                         Digits Line Chart
                     </h3>
-                    <LastDigitsLineChart digits={last20Digits} />
+                    <LastDigitsLineChart digits={last50Digits} />
                 </div>
             )}
 
