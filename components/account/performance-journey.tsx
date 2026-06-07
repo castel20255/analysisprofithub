@@ -48,6 +48,11 @@ export function PerformanceJourney({ theme = "dark" }: PerformanceJourneyProps) 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    const formatCurrency = (val: number | undefined | null) => {
+        const safeVal = val == null || isNaN(Number(val)) ? 0 : Number(val)
+        return safeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+
     const fetchJourneyData = useCallback(async () => {
         if (!apiClient || !isAuthorized) return
         setIsLoading(true)
@@ -101,17 +106,17 @@ export function PerformanceJourney({ theme = "dark" }: PerformanceJourneyProps) 
     ].filter(d => d.value > 0), [metrics, events])
 
     const scorecards = [
-        { label: "Aggregate Deposit", value: `$${metrics.deposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: <ArrowDownCircle className="h-5 w-5" />, color: "text-emerald-400", bgColor: "bg-emerald-500/5", borderColor: "border-emerald-500/20" },
-        { label: "Aggregate Withdrawal", value: `$${metrics.withdrawn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: <ArrowUpCircle className="h-5 w-5" />, color: "text-rose-400", bgColor: "bg-rose-500/5", borderColor: "border-rose-500/20" },
-        { label: "Net Trajectory", value: `${metrics.tradingPnL >= 0 ? "+" : ""}$${metrics.tradingPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: <Activity className="h-5 w-5" />, color: metrics.tradingPnL >= 0 ? "text-blue-400" : "text-rose-400", bgColor: metrics.tradingPnL >= 0 ? "bg-blue-500/5" : "bg-rose-500/5", borderColor: metrics.tradingPnL >= 0 ? "border-blue-500/20" : "border-rose-500/20" },
-        { label: "Realized Liquidity", value: `$${metrics.currentBal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, icon: <Wallet className="h-5 w-5" />, color: "text-purple-400", bgColor: "bg-purple-500/5", borderColor: "border-purple-500/20" },
+        { label: "Aggregate Deposit", value: `$${formatCurrency(metrics.deposited)}`, icon: <ArrowDownCircle className="h-5 w-5" />, color: "text-emerald-400", bgColor: "bg-emerald-500/5", borderColor: "border-emerald-500/20" },
+        { label: "Aggregate Withdrawal", value: `$${formatCurrency(metrics.withdrawn)}`, icon: <ArrowUpCircle className="h-5 w-5" />, color: "text-rose-400", bgColor: "bg-rose-500/5", borderColor: "border-rose-500/20" },
+        { label: "Net Trajectory", value: `${metrics.tradingPnL >= 0 ? "+" : ""}$${formatCurrency(metrics.tradingPnL)}`, icon: <Activity className="h-5 w-5" />, color: metrics.tradingPnL >= 0 ? "text-blue-400" : "text-rose-400", bgColor: metrics.tradingPnL >= 0 ? "bg-blue-500/5" : "bg-rose-500/5", borderColor: metrics.tradingPnL >= 0 ? "border-blue-500/20" : "border-rose-500/20" },
+        { label: "Realized Liquidity", value: `$${formatCurrency(metrics.currentBal)}`, icon: <Wallet className="h-5 w-5" />, color: "text-purple-400", bgColor: "bg-purple-500/5", borderColor: "border-purple-500/20" },
     ]
 
     const performanceMetrics = [
-        { label: "Win Quotient", value: `${metrics.winRate.toFixed(1)}%`, icon: <Gauge className="h-4 w-4 text-emerald-400" />, color: metrics.winRate >= 50 ? "text-emerald-400" : "text-rose-400", tag: metrics.winRate >= 50 ? "OPTIMIZED" : "STABLE" },
+        { label: "Win Quotient", value: `${(metrics.winRate ?? 0).toFixed(1)}%`, icon: <Gauge className="h-4 w-4 text-emerald-400" />, color: metrics.winRate >= 50 ? "text-emerald-400" : "text-rose-400", tag: metrics.winRate >= 50 ? "OPTIMIZED" : "STABLE" },
         { label: "Trade Volume", value: metrics.total, icon: <Activity className="h-4 w-4 text-blue-400" />, color: "text-white", tag: "VOLUME" },
-        { label: "Avg Win Node", value: `$${metrics.avgWin.toFixed(2)}`, icon: <TrendingUp className="h-4 w-4 text-emerald-400" />, color: "text-emerald-400", tag: "PEAK" },
-        { label: "Avg Loss Node", value: `$${metrics.avgLoss.toFixed(2)}`, icon: <TrendingDown className="h-4 w-4 text-rose-400" />, color: "text-rose-400", tag: "RISK" },
+        { label: "Avg Win Node", value: `$${(metrics.avgWin ?? 0).toFixed(2)}`, icon: <TrendingUp className="h-4 w-4 text-emerald-400" />, color: "text-emerald-400", tag: "PEAK" },
+        { label: "Avg Loss Node", value: `$${(metrics.avgLoss ?? 0).toFixed(2)}`, icon: <TrendingDown className="h-4 w-4 text-rose-400" />, color: "text-rose-400", tag: "RISK" },
     ]
 
     return (
@@ -260,13 +265,13 @@ export function PerformanceJourney({ theme = "dark" }: PerformanceJourneyProps) 
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black text-white/10 uppercase tracking-widest mb-0.5">TRANS DELTA</span>
                                         <span className={`text-lg font-black tracking-tighter tabular-nums ${event.amount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                            {event.amount >= 0 ? "+" : ""}{Math.abs(event.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {event.amount >= 0 ? "+" : ""}{formatCurrency(Math.abs(event.amount))}
                                         </span>
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="text-[9px] font-black text-white/10 uppercase tracking-widest mb-0.5">POST-TRAJECTORY BAL</span>
                                         <span className="text-lg font-black text-white/60 tracking-tighter tabular-nums">
-                                            {event.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(event.balance)}
                                         </span>
                                     </div>
                                 </div>

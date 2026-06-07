@@ -95,6 +95,11 @@ export function StatementList({ theme = "dark" }: StatementListProps) {
         })
     }
 
+    const formatCurrency = (val: number | undefined | null) => {
+        const safeVal = val == null || isNaN(Number(val)) ? 0 : Number(val)
+        return safeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+
     const getActionBadge = (action: string) => {
         const type = action.toLowerCase();
         let colors = "bg-white/5 text-white/40 border-white/10";
@@ -251,15 +256,15 @@ export function StatementList({ theme = "dark" }: StatementListProps) {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className={`text-sm font-black tracking-tighter tabular-nums ${getAmountColor(tx.amount)}`}>
-                                                    {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                <span className={`text-sm font-black tracking-tighter tabular-nums ${getAmountColor(tx.amount ?? 0)}`}>
+                                                    {(tx.amount ?? 0) > 0 ? "+" : ""}{formatCurrency(tx.amount)}
                                                 </span>
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right pr-8">
                                             <div className="flex flex-col items-end">
                                                 <span className="text-sm font-black text-white tracking-tighter tabular-nums shadow-current">
-                                                    {tx.balance_after.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {formatCurrency(tx.balance_after)}
                                                 </span>
                                             </div>
                                         </TableCell>

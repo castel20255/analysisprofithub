@@ -99,15 +99,21 @@ export function ProfitReport({ theme = "dark" }: ProfitReportProps) {
         })
     }
 
+    const formatCurrency = (val: number | undefined | null) => {
+        const safeVal = val == null || isNaN(Number(val)) ? 0 : Number(val)
+        return safeVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
+
     const getContractTypeBadge = (type: string) => {
-        if (type.includes("CALL")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-        if (type.includes("PUT")) return "bg-rose-500/10 text-rose-400 border-rose-500/20"
-        if (type.includes("DIGIT")) return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+        const t = type || ""
+        if (t.includes("CALL")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+        if (t.includes("PUT")) return "bg-rose-500/10 text-rose-400 border-rose-500/20"
+        if (t.includes("DIGIT")) return "bg-blue-500/10 text-blue-400 border-blue-500/20"
         return "bg-white/5 text-slate-400 border-white/10"
     }
 
-    const totalProfit = useMemo(() => profitTable.reduce((acc, tx) => acc + tx.profit_loss, 0), [profitTable])
-    const successRate = profitTable.length > 0 ? (profitTable.filter(tx => tx.profit_loss > 0).length / profitTable.length) * 100 : 0
+    const totalProfit = useMemo(() => profitTable.reduce((acc, tx) => acc + (tx.profit_loss ?? 0), 0), [profitTable])
+    const successRate = profitTable.length > 0 ? (profitTable.filter(tx => (tx.profit_loss ?? 0) > 0).length / profitTable.length) * 100 : 0
     const avgProfit = profitTable.length > 0 ? totalProfit / profitTable.length : 0
 
     return (
@@ -193,9 +199,9 @@ export function ProfitReport({ theme = "dark" }: ProfitReportProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: "EXECUTIONS", value: profitTable.length, color: "text-blue-400", bgColor: "bg-blue-500/5", borderColor: "border-blue-500/20", icon: <Zap className="h-5 w-5" /> },
-                    { label: "NET REVENUE", value: `${totalProfit >= 0 ? "+" : ""}${totalProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400", bgColor: totalProfit >= 0 ? "bg-emerald-500/5" : "bg-rose-500/5", borderColor: totalProfit >= 0 ? "border-emerald-500/20" : "border-rose-500/20", icon: <Target className="h-5 w-5" /> },
+                    { label: "NET REVENUE", value: `${totalProfit >= 0 ? "+" : ""}${formatCurrency(totalProfit)}`, color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400", bgColor: totalProfit >= 0 ? "bg-emerald-500/5" : "bg-rose-500/5", borderColor: totalProfit >= 0 ? "border-emerald-500/20" : "border-rose-500/20", icon: <Target className="h-5 w-5" /> },
                     { label: "QUOTIENT", value: `${successRate.toFixed(1)}%`, color: "text-indigo-400", bgColor: "bg-indigo-500/5", borderColor: "border-indigo-500/20", icon: <Activity className="h-5 w-5" /> },
-                    { label: "AVG DELTA", value: avgProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), color: "text-purple-400", bgColor: "bg-purple-500/5", borderColor: "border-purple-500/20", icon: <ShieldCheck className="h-5 w-5" /> },
+                    { label: "AVG DELTA", value: formatCurrency(avgProfit), color: "text-purple-400", bgColor: "bg-purple-500/5", borderColor: "border-purple-500/20", icon: <ShieldCheck className="h-5 w-5" /> },
                 ].map((s, i) => (
                     <div key={i} className={`group relative overflow-hidden rounded-[2rem] border transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl ${s.bgColor} ${s.borderColor}`}>
                         <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 transition-transform group-hover:scale-125">{s.icon}</div>
@@ -262,18 +268,18 @@ export function ProfitReport({ theme = "dark" }: ProfitReportProps) {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <span className="text-[11px] font-mono font-bold text-white/30 tabular-nums">
-                                                {tx.buy_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {formatCurrency(tx.buy_price)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <span className="text-[11px] font-mono font-bold text-white/30 tabular-nums">
-                                                {tx.sell_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                {formatCurrency(tx.sell_price)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right pr-8">
-                                            <div className={`flex items-center justify-end gap-2 text-sm font-black tracking-tighter tabular-nums ${tx.profit_loss >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                                {tx.profit_loss >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                                                {tx.profit_loss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            <div className={`flex items-center justify-end gap-2 text-sm font-black tracking-tighter tabular-nums ${(tx.profit_loss ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                {(tx.profit_loss ?? 0) >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                                                {formatCurrency(tx.profit_loss)}
                                             </div>
                                         </TableCell>
                                     </TableRow>

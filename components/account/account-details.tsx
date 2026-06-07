@@ -108,7 +108,8 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
 
     const totalBalance = accounts.reduce((sum, acc) => {
         const bal = accountBalances[acc.id] ?? (acc.id === activeLoginId ? (balance?.amount ?? acc.balance ?? 0) : (acc.balance ?? 0))
-        return sum + Number(bal)
+        const parsed = Number(bal)
+        return sum + (isNaN(parsed) ? 0 : parsed)
     }, 0)
 
     const realAccounts = accounts.filter(a => a.type === "Real")
@@ -116,9 +117,10 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
     const initials = (username || activeLoginId || "U").slice(0, 2).toUpperCase()
     const currentGradient = getGradient(accountType || "Demo", balance?.currency || "USD")
 
-    const formatCurrency = (amount: number, currency: string) => {
+    const formatCurrency = (amount: number | undefined | null, currency: string) => {
         if (!showBalance) return "••••••"
-        return amount.toLocaleString(undefined, {
+        const safeAmount = (amount == null || isNaN(Number(amount))) ? 0 : Number(amount)
+        return safeAmount.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         })
@@ -340,7 +342,7 @@ export default function AccountDetails({ activeLoginId, balance, accountType, ac
                                                 const fetched = accountBalances[acc.id]
                                                 const bal = fetched !== undefined ? fetched
                                                     : (acc.id === activeLoginId ? (balance?.amount ?? acc.balance ?? 0) : (acc.balance ?? 0))
-                                                return formatCurrency(bal, acc.currency || "USD")
+                                                return formatCurrency(bal ?? 0, acc.currency || "USD")
                                             })()}
                                         </h4>
                                     )}
