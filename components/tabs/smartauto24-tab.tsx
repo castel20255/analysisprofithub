@@ -736,13 +736,15 @@ export function SmartAuto24Tab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 backdrop-blur-lg p-4 rounded-2xl ${theme === "dark" 
+      ? "bg-gradient-to-br from-[#0f1629]/30 via-[#1a2235]/20 to-[#0f1629]/30" 
+      : "bg-gradient-to-br from-blue-50/30 via-white/30 to-purple-50/30"}`}>
       {!isAuthorized ? (
         <Card
-          className={`border ${theme === "dark" ? "bg-amber-500/5 border-amber-500/20 backdrop-blur-xl" : "bg-amber-50 border-amber-200"}`}
+          className={`border-2 backdrop-blur-lg transition-all ${theme === "dark" ? "bg-amber-500/15 border-amber-400/40 shadow-lg shadow-amber-500/20" : "bg-amber-50/50 border-amber-300/50"}`}
         >
           <CardContent className="p-4 flex items-center gap-3">
-            <div className={`p-2 rounded-full shrink-0 ${theme === "dark" ? "bg-amber-500/10 border border-amber-500/20" : "bg-amber-100"}`}>
+            <div className={`p-2 rounded-full shrink-0 backdrop-blur-sm ${theme === "dark" ? "bg-amber-500/20 border border-amber-400/50" : "bg-amber-100"}`}>
               <AlertCircle className={`w-4 h-4 ${theme === "dark" ? "text-amber-400" : "text-amber-600"}`} />
             </div>
             <div>
@@ -758,9 +760,9 @@ export function SmartAuto24Tab({
       ) : (
         <>
           <Card
-            className={`p-6 border ${theme === "dark"
-              ? "bg-linear-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 border-green-500/30"
-              : "bg-linear-to-r from-green-50 to-emerald-50 border-green-200"
+            className={`p-6 border-2 backdrop-blur-xl rounded-2xl transition-all ${theme === "dark"
+              ? "bg-gradient-to-r from-emerald-600/20 via-emerald-500/15 to-teal-600/15 border-emerald-400/40 shadow-lg shadow-emerald-500/20"
+              : "bg-gradient-to-r from-emerald-100/50 via-white/50 to-teal-50/50 border-emerald-400/50 shadow-md"
               }`}
           >
             <div className="flex items-center justify-between">

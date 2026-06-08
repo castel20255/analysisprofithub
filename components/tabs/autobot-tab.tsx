@@ -484,9 +484,9 @@ export function AutoBotTab({
   }
 
   return (
-    <div className="space-y-2 sm:space-y-6">
+    <div className={`space-y-2 sm:space-y-6 backdrop-blur-xl ${theme === "dark" ? "bg-gradient-to-br from-[#0f1629]/30 via-[#1a2235]/20 to-[#0f1629]/30" : "bg-gradient-to-br from-blue-50/30 via-white/30 to-purple-50/30"}`}>
       {(apiError || (!isConnected && !currentPrice)) && (
-        <Card className={theme === "dark" ? "bg-red-500/10 border-red-500/30" : "bg-red-50 border-red-200"}>
+        <Card className={`backdrop-blur-lg border-2 transition-all ${theme === "dark" ? "bg-red-500/15 border-red-400/40 shadow-lg shadow-red-500/20" : "bg-red-50/50 border-red-300/50"}`}>
           <CardContent className="p-3 sm:pt-6 flex items-start gap-2 sm:gap-3">
             <AlertCircle className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
             <div>
@@ -500,7 +500,7 @@ export function AutoBotTab({
       )}
 
       {isConnected && !isAuthorized && isLoggedIn && (
-         <Card className={theme === "dark" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-200"}>
+         <Card className={`backdrop-blur-lg border-2 transition-all ${theme === "dark" ? "bg-yellow-500/15 border-yellow-400/40 shadow-lg shadow-yellow-500/20" : "bg-yellow-50/50 border-yellow-300/50"}`}>
           <CardContent className="p-3 sm:pt-6 flex items-start gap-2 sm:gap-3">
             <AlertCircle className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${theme === "dark" ? "text-yellow-400" : "text-yellow-600"}`} />
             <div>
@@ -538,13 +538,13 @@ export function AutoBotTab({
           return (
             <Card
               key={strategy.id}
-              className={`${isReady && !isRunning
+              className={`backdrop-blur-xl border-2 rounded-2xl transition-all duration-300 ${isReady && !isRunning
                 ? theme === "dark"
-                  ? "bg-linear-to-br from-green-500/20 to-emerald-500/10 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse"
-                  : "bg-linear-to-br from-green-50 to-emerald-50 border-green-400"
+                  ? "bg-gradient-to-br from-emerald-600/20 via-emerald-500/10 to-emerald-600/15 border-emerald-400/50 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/40 scale-105"
+                  : "bg-gradient-to-br from-emerald-100/50 via-white/50 to-emerald-50/50 border-emerald-400/50 shadow-lg hover:shadow-xl"
                 : theme === "dark"
-                  ? "bg-linear-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
-                  : "bg-white border-gray-200"
+                  ? "bg-gradient-to-br from-blue-600/15 via-[#0f1629]/40 to-blue-600/10 border-blue-400/30 shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                  : "bg-gradient-to-br from-white/50 via-blue-50/30 to-white/40 border-blue-300/50 shadow-sm hover:shadow-md"
                 }`}
             >
               <CardHeader className="pb-3">

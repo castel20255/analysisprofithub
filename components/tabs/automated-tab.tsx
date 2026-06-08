@@ -225,10 +225,14 @@ export function AutoBotTab({ theme = "dark", symbol, onSymbolChange, availableSy
   const canStart = !isRunning && isConnected && isAuthorized && !!apiClient && !isLoading
 
   return (
-    <div className="space-y-3 sm:space-y-6">
+    <div className={`space-y-3 sm:space-y-6 backdrop-blur-lg p-4 rounded-2xl ${theme === "dark" 
+      ? "bg-gradient-to-br from-[#0f1629]/30 via-[#1a2235]/20 to-[#0f1629]/30" 
+      : "bg-gradient-to-br from-blue-50/30 via-white/30 to-purple-50/30"}`}>
       {/* Connection Status Alert - only show if no data and really disconnected */}
       {(apiError || localError || (!isConnected && marketPrice === 0)) && (
-        <Card className="bg-rose-500/5 border-rose-500/20 backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-500">
+        <Card className={`backdrop-blur-xl border-2 animate-in fade-in slide-in-from-top-2 duration-500 transition-all ${theme === "dark" 
+          ? "bg-rose-500/15 border-rose-400/40 shadow-lg shadow-rose-500/20" 
+          : "bg-rose-50/50 border-rose-300/50"}`}>
           <CardContent className="p-4 flex items-start gap-3">
             <div className="p-2 rounded-full bg-rose-500/10 border border-rose-500/20">
                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -245,7 +249,9 @@ export function AutoBotTab({ theme = "dark", symbol, onSymbolChange, availableSy
 
       {/* Authorization pending alert - show when connected but not yet authorized */}
       {isConnected && !isAuthorized && isLoggedIn && !localError && (
-        <Card className="bg-amber-500/5 border-amber-500/20 backdrop-blur-xl">
+        <Card className={`backdrop-blur-xl border-2 transition-all ${theme === "dark" 
+          ? "bg-amber-500/15 border-amber-400/40 shadow-lg shadow-amber-500/20" 
+          : "bg-amber-50/50 border-amber-300/50"}`}>
           <CardContent className="p-3 flex items-center gap-3">
             <div className="p-2 rounded-full bg-amber-500/10 border border-amber-500/20">
                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />

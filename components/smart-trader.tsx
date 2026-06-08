@@ -144,7 +144,9 @@ export function SmartTrader({ theme = "dark", currency = "USD" }: SmartTraderPro
   }
 
   return (
-    <div className={`space-y-4 p-4 rounded-lg ${theme === "dark" ? "bg-[#0a0e27]/50" : "bg-gray-50"}`}>
+    <div className={`space-y-4 p-6 rounded-2xl backdrop-blur-xl transition-all ${theme === "dark" 
+      ? "bg-gradient-to-br from-blue-600/15 via-[#0f1629]/40 to-purple-600/15 border border-blue-400/30 shadow-lg shadow-blue-500/10" 
+      : "bg-gradient-to-br from-white/50 via-blue-50/30 to-white/40 border border-blue-300/50 shadow-md"}`}>
       <div className="flex items-center justify-between">
         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
           🎯 Manual Trading - SmartTrader
@@ -154,7 +156,7 @@ export function SmartTrader({ theme = "dark", currency = "USD" }: SmartTraderPro
 
       {!isAuthorized && (
         <div
-          className={`p-3 rounded-lg flex items-center gap-2 ${theme === "dark" ? "bg-yellow-500/10 border border-yellow-500/30" : "bg-yellow-50 border border-yellow-200"}`}
+          className={`p-3 rounded-xl flex items-center gap-2 backdrop-blur-sm border-2 transition-all ${theme === "dark" ? "bg-yellow-500/15 border-yellow-400/40 shadow-lg shadow-yellow-500/10" : "bg-yellow-50/50 border-yellow-300/50"}`}
         >
           <AlertCircle className="w-4 h-4 text-yellow-500" />
           <span className={`text-sm ${theme === "dark" ? "text-yellow-400" : "text-yellow-700"}`}>

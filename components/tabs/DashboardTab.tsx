@@ -13,7 +13,9 @@ interface DashboardTabProps {
  */
 export default function DashboardTab({ theme = 'dark' }: DashboardTabProps) {
   return (
-    <div className={`p-4 ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+    <div className={`p-6 min-h-screen backdrop-blur-lg transition-all duration-300 ${theme === 'dark' 
+      ? 'bg-gradient-to-br from-[#0f1629]/40 via-[#1a2235]/30 to-[#0f1629]/40' 
+      : 'bg-gradient-to-br from-blue-50/30 via-white/40 to-purple-50/30'}`}>
       <UnifiedTradingDashboard />
     </div>
   );
