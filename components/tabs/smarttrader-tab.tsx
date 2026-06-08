@@ -18,7 +18,7 @@ export function SmartTraderTab({ theme = "dark" }: SmartTraderTabProps) {
     : `https://smarttrader.deriv.com?app_id=${DERIV_CONFIG.APP_ID}`
 
   return (
-    <div className={`min-h-[80vh] flex flex-col ${theme === "dark" ? "bg-gray-900" : "bg-white"}`}>
+    <div className={`min-h-[80vh] flex flex-col ${theme === "dark" ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80" : "bg-white"}`}>
       <div className="mb-4">
         <DerivAuth theme={theme} />
       </div>

@@ -46,15 +46,11 @@ export function RiseFallTab({ analysis, signals, currentPrice, recentDigits, the
   return (
     <div className="space-y-6">
       <div
-        className={`rounded-xl p-4 sm:p-6 md:p-8 border ${theme === "dark"
-          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
-          : "bg-white border-gray-200 shadow-lg"
+        className={`rounded-xl p-6 border ${theme === "dark"
+          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
+          : "bg-white border-gray-200"
           }`}
       >
-        <div className="w-full h-[400px] mb-8 rounded-xl overflow-hidden border border-white/5 bg-[#050505]/50">
-           <DerivSmartChart symbol={symbol || "R_100"} theme={theme} hideToolbar />
-        </div>
-
         <h2
           className={`text-2xl sm:text-3xl font-bold mb-6 text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}
         >

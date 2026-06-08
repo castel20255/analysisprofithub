@@ -100,7 +100,7 @@ export function RiskManagementTab() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Input Panel */}
-                <Card className="lg:col-span-1 bg-black/40 border-white/5 backdrop-blur-xl">
+                <Card className="lg:col-span-1 soft-card border-white/5 bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80">
                     <CardContent className="pt-6 space-y-4">
                         <div className="flex items-center gap-2 mb-4 text-blue-400">
                             <Calculator className="w-5 h-5" />

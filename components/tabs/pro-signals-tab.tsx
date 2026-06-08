@@ -47,9 +47,9 @@ export function ProSignalsTab({ proSignals, analysis, theme = "dark", symbol, av
         </div>
 
         <div
-          className={`rounded-xl p-6 border ${theme === "dark"
-            ? "bg-gradient-to-br from-purple-900/40 via-pink-900/30 to-amber-900/40 border-amber-500/30 shadow-[0_0_40px_rgba(217,119,6,0.3)]"
-            : "bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 border-amber-300 shadow-xl"
+          className={`soft-card p-6 border-white/5 rounded-xl ${theme === "dark"
+            ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
+            : "bg-white border-gray-200"
             }`}
         >
           <div className="flex items-center justify-between mb-4">

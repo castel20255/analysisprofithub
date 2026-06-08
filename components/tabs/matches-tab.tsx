@@ -70,9 +70,9 @@ export function MatchesTab({ analysis, signals, recentDigits, theme = "dark", sy
   return (
     <div className="space-y-6">
       <div
-        className={`rounded-xl p-8 border ${theme === "dark"
-          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
-          : "bg-white border-gray-200 shadow-lg"
+        className={`rounded-xl p-6 border ${theme === "dark"
+          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
+          : "bg-white border-gray-200"
           }`}
       >
         <h2 className={`text-3xl font-bold mb-6 text-center ${theme === "dark" ? "text-white" : "text-gray-900"}`}>

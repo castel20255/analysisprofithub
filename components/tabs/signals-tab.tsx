@@ -246,7 +246,7 @@ export function SignalsTab({ signals, proSignals, analysis, theme = "dark", symb
 
       {analysis && (
         <div
-          className={`rounded-xl p-6 border ${theme === "dark"
+          className={`soft-card p-6 border-white/5 rounded-xl ${theme === "dark"
             ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
             : "bg-white border-gray-200"
             }`}

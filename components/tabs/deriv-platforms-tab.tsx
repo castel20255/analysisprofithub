@@ -27,13 +27,13 @@ export function DerivPlatformsTab({ theme = "dark" }: DerivPlatformsTabProps) {
   const iframeUrl = getUrl(activeTab)
 
   return (
-    <div className={`h-screen flex flex-col ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
+    <div className={`h-screen flex flex-col ${theme === "dark" ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 text-white" : "bg-white text-gray-900"}`}>
       <DerivAuth theme={theme} />
       <DerivHeader activeTab={activeTab} setActiveTab={setActiveTab} theme={theme} />
 
       <div className="flex-1 p-4">
         <div
-          className={`w-full h-full rounded-2xl shadow-lg overflow-hidden ${theme === "dark" ? "bg-gray-800" : "bg-gray-50"
+          className={`w-full h-full rounded-2xl shadow-lg overflow-hidden ${theme === "dark" ? "bg-black/20 border border-blue-500/20" : "bg-gray-50"
             }`}
         >
           <iframe
