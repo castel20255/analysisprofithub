@@ -162,6 +162,20 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
     return { safestDigit: sorted[0]?.digit ?? 0, safetyPct: 100 - (sorted[0]?.percentage ?? 0), sorted }
   }, [digitFrequencies])
 
+  /* ── Rise/Fall (Tick Direction) ── */
+  const riseFailStats = useMemo(() => {
+    if (recentDigits.length < 2) return { risePct: 50, fallPct: 50, riseCount: 0, fallCount: 0 }
+    let rises = 0, falls = 0
+    for (let i = 1; i < recentDigits.length; i++) {
+      const prev = recentDigits[i - 1]
+      const curr = recentDigits[i]
+      if (curr > prev) rises++
+      else if (curr < prev) falls++
+    }
+    const total = rises + falls || 1
+    return { risePct: (rises / total) * 100, fallPct: (falls / total) * 100, riseCount: rises, fallCount: falls }
+  }, [recentDigits])
+
   const activeDef = STRATEGIES.find(s => s.id === activeStrategy)!
 
   // Color theme variables
@@ -231,17 +245,58 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
 
         {/* OVER / UNDER */}
         {activeStrategy === "over-under" && (
-          <div className="space-y-6">
-            {/* Segmented comparison bar */}
-            <SegmentedBar
-              pct1={overUnderStats.underPct}
-              label1="Under (0-4)"
-              color1="bg-gradient-to-r from-emerald-600 to-emerald-500"
-              pct2={overUnderStats.overPct}
-              label2="Over (5-9)"
-              color2="bg-gradient-to-r from-blue-600 to-blue-500"
-              isDark={isDark}
-            />
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Under card */}
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-emerald-600/15 via-black/40 to-black/30 border-emerald-400/30 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:border-emerald-400/50"
+                : "bg-gradient-to-br from-emerald-50/60 via-white/40 to-white/30 border-emerald-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                  <TrendingDown className="h-24 w-24 text-[#00D4AA] -rotate-12" />
+                </div>
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-bold text-[#00D4AA]">Under (0-4)</div>
+                    <span className="text-4xl font-black tabular-nums font-mono text-[#00D4AA]">
+                      <LiveNumber value={overUnderStats.underPct} />%
+                    </span>
+                  </div>
+                  <LiveBar pct={overUnderStats.underPct} colorClass="bg-[#00D4AA]" glowColor="rgba(0,212,170,0.4)" />
+                  <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-lg font-black ${textTitleClass}`}>{overUnderStats.bestUnderDigit}</span>
+                      <span className="text-[9px] font-mono font-bold text-[#00D4AA]">{overUnderStats.bestUnderPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Over card */}
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                  <TrendingUp className="h-24 w-24 text-[#0066FF] rotate-12" />
+                </div>
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-bold text-[#0066FF]">Over (5-9)</div>
+                    <span className="text-4xl font-black tabular-nums font-mono text-[#0066FF]">
+                      <LiveNumber value={overUnderStats.overPct} />%
+                    </span>
+                  </div>
+                  <LiveBar pct={overUnderStats.overPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
+                  <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-lg font-black ${textTitleClass}`}>{overUnderStats.bestOverDigit}</span>
+                      <span className="text-[9px] font-mono font-bold text-[#0066FF]">{overUnderStats.bestOverPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Bias Signal */}
             <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
@@ -265,16 +320,48 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
 
         {/* EVEN / ODD */}
         {activeStrategy === "even-odd" && (
-          <div className="space-y-6">
-            <SegmentedBar
-              pct1={evenOddStats.evenPct}
-              label1="Even"
-              color1="bg-gradient-to-r from-blue-600 to-blue-500"
-              pct2={evenOddStats.oddPct}
-              label2="Odd"
-              color2="bg-gradient-to-r from-orange-600 to-orange-500"
-              isDark={isDark}
-            />
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Even card */}
+              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-bold text-[#0066FF]">Even</div>
+                  <span className="text-4xl font-black tabular-nums font-mono text-[#0066FF]">
+                    <LiveNumber value={evenOddStats.evenPct} />%
+                  </span>
+                </div>
+                <LiveBar pct={evenOddStats.evenPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
+                <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestEvenDigit}</span>
+                    <span className="text-[9px] font-mono font-bold text-[#0066FF]">{evenOddStats.bestEvenPct.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Odd card */}
+              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                ? "bg-gradient-to-br from-orange-600/15 via-black/40 to-black/30 border-orange-400/30 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 hover:border-orange-400/50"
+                : "bg-gradient-to-br from-orange-50/60 via-white/40 to-white/30 border-orange-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="text-lg font-bold text-[#FF6B35]">Odd</div>
+                  <span className="text-4xl font-black tabular-nums font-mono text-[#FF6B35]">
+                    <LiveNumber value={evenOddStats.oddPct} />%
+                  </span>
+                </div>
+                <LiveBar pct={evenOddStats.oddPct} colorClass="bg-[#FF6B35]" glowColor="rgba(255,107,53,0.4)" />
+                <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestOddDigit}</span>
+                    <span className="text-[9px] font-mono font-bold text-[#FF6B35]">{evenOddStats.bestOddPct.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Bias Signal */}
             <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
@@ -296,27 +383,66 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
 
         {/* RISE / FALL */}
         {activeStrategy === "rise-fall" && (
-          <div className="space-y-6">
-            <SegmentedBar
-              pct1={overUnderStats.overPct}
-              label1="Rise (Next Higher)"
-              color1="bg-gradient-to-r from-amber-600 to-amber-500"
-              pct2={overUnderStats.underPct}
-              label2="Fall (Next Lower)"
-              color2="bg-gradient-to-r from-red-600 to-red-500"
-              isDark={isDark}
-            />
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Rise card */}
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-amber-600/15 via-black/40 to-black/30 border-amber-400/30 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20 hover:border-amber-400/50"
+                : "bg-gradient-to-br from-amber-50/60 via-white/40 to-white/30 border-amber-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                  <TrendingUp className="h-24 w-24 text-amber-500 rotate-12" />
+                </div>
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-bold text-amber-500">Rise</div>
+                    <span className="text-4xl font-black tabular-nums font-mono text-amber-500">
+                      <LiveNumber value={riseFailStats.risePct} />%
+                    </span>
+                  </div>
+                  <LiveBar pct={riseFailStats.risePct} colorClass="bg-amber-500" glowColor="rgba(245,158,11,0.4)" />
+                  <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tick Count</span>
+                    <span className="text-sm font-mono font-bold text-amber-500">{riseFailStats.riseCount} ticks</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fall card */}
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-red-600/15 via-black/40 to-black/30 border-red-400/30 shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:border-red-400/50"
+                : "bg-gradient-to-br from-red-50/60 via-white/40 to-white/30 border-red-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                  <TrendingDown className="h-24 w-24 text-red-500 -rotate-12" />
+                </div>
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-lg font-bold text-red-500">Fall</div>
+                    <span className="text-4xl font-black tabular-nums font-mono text-red-500">
+                      <LiveNumber value={riseFailStats.fallPct} />%
+                    </span>
+                  </div>
+                  <LiveBar pct={riseFailStats.fallPct} colorClass="bg-red-500" glowColor="rgba(239,68,68,0.4)" />
+                  <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tick Count</span>
+                    <span className="text-sm font-mono font-bold text-red-500">{riseFailStats.fallCount} ticks</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Trend Signal */}
             <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
               ? "bg-gradient-to-r from-amber-600/15 via-black/40 to-black/30 border-amber-400/30 shadow-lg shadow-amber-500/10"
               : "bg-gradient-to-r from-amber-50/60 via-white/40 to-white/30 border-amber-200/50 shadow-sm"}`}>
               <div className="flex items-center gap-2">
-                <TrendingUp className={`h-4 w-4 ${overUnderStats.overPct > overUnderStats.underPct ? "text-amber-400" : "text-red-400"}`} />
+                <TrendingUp className={`h-4 w-4 ${riseFailStats.risePct > riseFailStats.fallPct ? "text-amber-500" : "text-red-500"}`} />
                 <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>Trend Prediction</span>
               </div>
-              <span className={`text-sm font-black uppercase tracking-widest ${overUnderStats.overPct > overUnderStats.underPct ? "text-amber-400" : "text-red-400"}`}>
-                {overUnderStats.overPct > overUnderStats.underPct ? "RISE TREND" : "FALL TREND"}
+              <span className={`text-sm font-black uppercase tracking-widest ${riseFailStats.risePct > riseFailStats.fallPct ? "text-amber-500" : "text-red-500"}`}>
+                {riseFailStats.risePct > riseFailStats.fallPct ? "RISE TREND" : "FALL TREND"}
+                <span className={`ml-2 text-[10px] font-mono opacity-60 ${textSubClass}`}>
+                  +{Math.abs(riseFailStats.risePct - riseFailStats.fallPct).toFixed(1)}%
+                </span>
               </span>
             </div>
           </div>
