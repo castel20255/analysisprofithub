@@ -603,6 +603,42 @@ export default function DerivAnalysisApp() {
                         Last Digits Line Chart
                       </h3>
                       <LastDigitsLineChart digits={recentDigits.slice(-10)} />
+                      
+                      {/* Market Suggestion Below Chart */}
+                      <div className={`mt-4 p-3 rounded-lg border ${
+                        (() => {
+                          const last10 = recentDigits.slice(-10);
+                          const avgDigit = last10.length > 0 ? last10.reduce((a, b) => a + b) / last10.length : 4.5;
+                          const isUptrend = last10.length > 1 && last10[last10.length - 1] > last10[0];
+                          const isDowntrend = last10.length > 1 && last10[last10.length - 1] < last10[0];
+                          const isRanging = !isUptrend && !isDowntrend && last10.length > 2;
+                          
+                          return isUptrend ? "bg-green-500/10 border-green-500/30" : 
+                                 isDowntrend ? "bg-red-500/10 border-red-500/30" : 
+                                 "bg-yellow-500/10 border-yellow-500/30";
+                        })()
+                      }`}>
+                        <p className={`text-xs font-bold uppercase tracking-wide ${theme === "dark" ? "text-slate-300" : "text-slate-700"}`}>
+                          {(() => {
+                            const last10 = recentDigits.slice(-10);
+                            if (last10.length === 0) return "Awaiting data...";
+                            
+                            const avgDigit = last10.reduce((a, b) => a + b) / last10.length;
+                            const isUptrend = last10.length > 1 && last10[last10.length - 1] > last10[0];
+                            const isDowntrend = last10.length > 1 && last10[last10.length - 1] < last10[0];
+                            const isRanging = !isUptrend && !isDowntrend;
+                            
+                            if (isUptrend) {
+                              return "📈 UPWARD POWER - Strong momentum. Market showing strong bullish power. Ideal for OVER trades.";
+                            } else if (isDowntrend) {
+                              return "📉 REVERSE STRENGTH - Downside momentum detected. Market leaning bearish. Consider UNDER positions.";
+                            } else if (isRanging) {
+                              return "➡️ BALANCED MARKET - Price ranging between highs and lows. Best for counter-trend or mean-reversion plays.";
+                            }
+                            return "🔄 NEUTRAL ZONE - Awaiting directional confirmation.";
+                          })()}
+                        </p>
+                      </div>
                     </div>
 
                     <div

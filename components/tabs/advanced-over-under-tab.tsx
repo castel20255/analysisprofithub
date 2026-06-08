@@ -446,6 +446,116 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [] }: MoneyMakerT
         </Card>
       </div>
 
+      {/* Safe Entry & Exit Strategy (Last 15 Digits) */}
+      <div
+        className={`rounded-xl p-4 sm:p-6 border ${
+          theme === "dark"
+            ? "bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border-emerald-500/30"
+            : "bg-emerald-50 border-emerald-200"
+        }`}
+      >
+        <h3 className={`text-lg sm:text-xl font-bold mb-4 ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
+          🎯 Safe Entry & Exit Strategy (Last 15 Digits)
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* Entry Strategy */}
+          <div className={`p-4 rounded-lg border ${
+            theme === "dark" 
+              ? "bg-emerald-500/5 border-emerald-400/30" 
+              : "bg-white border-emerald-200"
+          }`}>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
+              📍 Entry Point
+            </p>
+            <p className={`text-sm leading-relaxed ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              {(() => {
+                const last15 = recentDigits.slice(-15);
+                if (last15.length < 5) return "Awaiting sufficient data...";
+                
+                const last5 = last15.slice(-5);
+                const prevAvg = last15.slice(0, 10).reduce((a, b) => a + b) / 10;
+                const currentAvg = last5.reduce((a, b) => a + b) / 5;
+                const trend = currentAvg > prevAvg ? "BULL" : currentAvg < prevAvg ? "BEAR" : "NEUTRAL";
+                
+                if (trend === "BULL") {
+                  return `Strong upward momentum detected. Recommended entry: Buy dips on minor pullbacks. Target entry near support levels. Position sizing: Moderate-to-aggressive.`;
+                } else if (trend === "BEAR") {
+                  return `Downward pressure detected. Recommended entry: Sell on bounces. Entry on resistance breaks. Position sizing: Conservative.`;
+                } else {
+                  return `Range-bound market. Recommended entry: Buy oversold (near 2-3), Sell overbought (near 6-7). Use tight stops. Position sizing: Conservative.`;
+                }
+              })()}
+            </p>
+          </div>
+
+          {/* Exit Strategy */}
+          <div className={`p-4 rounded-lg border ${
+            theme === "dark" 
+              ? "bg-rose-500/5 border-rose-400/30" 
+              : "bg-white border-rose-200"
+          }`}>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${theme === "dark" ? "text-rose-300" : "text-rose-700"}`}>
+              🚪 Exit Point
+            </p>
+            <p className={`text-sm leading-relaxed ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              {(() => {
+                const last15 = recentDigits.slice(-15);
+                if (last15.length < 5) return "Awaiting sufficient data...";
+                
+                const maxDigit = Math.max(...last15);
+                const minDigit = Math.min(...last15);
+                const range = maxDigit - minDigit;
+                
+                if (range < 3) {
+                  return `Low volatility detected. Set tight take-profit (1-2%) and stop-loss (0.5%). Exit on volatility spike or profit target hit.`;
+                } else if (range >= 5) {
+                  return `High volatility detected. Set wider targets. Take-profit: 3-5% of position. Stop-loss: 2% max. Exit if reversal signals appear.`;
+                } else {
+                  return `Moderate volatility. Take-profit: 2-3%, Stop-loss: 1%. Exit if momentum changes direction sharply.`;
+                }
+              })()}
+            </p>
+          </div>
+        </div>
+
+        {/* Market Recognition Alert */}
+        <div className={`p-3 rounded-lg border-l-4 ${
+          (() => {
+            const last15 = recentDigits.slice(-15);
+            const maxDigit = Math.max(...last15);
+            const minDigit = Math.min(...last15);
+            const range = maxDigit - minDigit;
+            
+            if (range < 3) return theme === "dark" ? "bg-yellow-500/10 border-yellow-500" : "bg-yellow-50 border-yellow-500";
+            if (range >= 5) return theme === "dark" ? "bg-red-500/10 border-red-500" : "bg-red-50 border-red-500";
+            return theme === "dark" ? "bg-blue-500/10 border-blue-500" : "bg-blue-50 border-blue-500";
+          })()
+        }`}>
+          <p className={`text-xs font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+            💡 <span className="font-bold">Market Recognition:</span> {
+              (() => {
+                const last15 = recentDigits.slice(-15);
+                if (last15.length === 0) return "No data available";
+                
+                const maxDigit = Math.max(...last15);
+                const minDigit = Math.min(...last15);
+                const range = maxDigit - minDigit;
+                const volatility = analysis.volatility;
+                
+                if (range < 3) {
+                  return `⚠️ Low volatility zone (Range: ${range}). Expect choppy trades & small moves. Use tight risk management. Breakout watch.`;
+                } else if (range >= 5) {
+                  return `🔴 High volatility zone (Range: ${range}). Strong directional moves likely. Wider stops/targets recommended. Strong trend potential.`;
+                } else {
+                  return `🟡 Moderate volatility (Range: ${range}). Balanced risk/reward. Normal trading conditions. Follow signals closely.`;
+                }
+              })()
+            }
+          </p>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="flex gap-3">
         {signal.status === "RUN NOW" && (

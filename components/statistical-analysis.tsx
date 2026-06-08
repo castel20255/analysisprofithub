@@ -265,7 +265,10 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                   <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-lg font-black ${textTitleClass}`}>{overUnderStats.bestUnderDigit}</span>
+                      <span className={`text-lg font-black ${textTitleClass} px-3 py-1 rounded-lg transition-all duration-300 shadow-lg`} style={{
+                        textShadow: '0 0 20px rgba(0,212,170,0.8), 0 0 40px rgba(0,212,170,0.5)',
+                        boxShadow: '0 0 20px rgba(0,212,170,0.6), inset 0 0 10px rgba(0,212,170,0.2)'
+                      }}>{overUnderStats.bestUnderDigit}</span>
                       <span className="text-[9px] font-mono font-bold text-[#00D4AA]">{overUnderStats.bestUnderPct.toFixed(1)}%</span>
                     </div>
                   </div>
@@ -290,7 +293,10 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                   <div className={`flex items-center justify-between pt-2 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-lg font-black ${textTitleClass}`}>{overUnderStats.bestOverDigit}</span>
+                      <span className={`text-lg font-black ${textTitleClass} px-3 py-1 rounded-lg transition-all duration-300 shadow-lg`} style={{
+                        textShadow: '0 0 20px rgba(0,102,255,0.8), 0 0 40px rgba(0,102,255,0.5)',
+                        boxShadow: '0 0 20px rgba(0,102,255,0.6), inset 0 0 10px rgba(0,102,255,0.2)'
+                      }}>{overUnderStats.bestOverDigit}</span>
                       <span className="text-[9px] font-mono font-bold text-[#0066FF]">{overUnderStats.bestOverPct.toFixed(1)}%</span>
                     </div>
                   </div>
