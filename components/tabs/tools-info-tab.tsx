@@ -38,42 +38,47 @@ export function ToolsInfoTab({ theme, connectionLogs = [] }: ToolsInfoTabProps) 
   return (
     <div className="w-full">
         <Tabs defaultValue="bots" className="w-full">
-          <TabsList
-            className={`w-full justify-start border-b rounded-none ${theme === "dark" ? "border-blue-500/20 bg-[#0f1629]/50" : "border-gray-200 bg-white/50"} overflow-x-auto p-0`}
-          >
-            {[
-              { value: "bots", label: "Trading Bots 🤖", icon: "🤖" },
-              { value: "settings", label: "Settings ⚙️", icon: "⚙️" },
-              { value: "help", label: "Help & Documentation 📚", icon: "📚" },
-              { value: "logs", label: "Connection Logs 📋", icon: "📋" },
-            ].map((tab) => (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className={`flex-shrink-0 rounded-none border-b-2 border-transparent text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap transition-all font-medium ${theme === "dark"
-                  ? "text-gray-400 hover:text-white data-[state=active]:border-blue-500 data-[state=active]:text-blue-400 data-[state=active]:bg-blue-500/10"
-                  : "text-gray-600 hover:text-gray-900 data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 data-[state=active]:bg-blue-50"
-                  }`}
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className={`relative backdrop-blur-lg border-b transition-all duration-300 ${theme === "dark" 
+            ? "bg-gradient-to-r from-blue-500/5 via-transparent to-purple-500/5 border-blue-400/20" 
+            : "bg-gradient-to-r from-blue-50 via-white to-purple-50 border-gray-200"}`}>
+            <TabsList
+              className={`w-full justify-start rounded-none overflow-x-auto p-0 bg-transparent ${theme === "dark" ? "border-0" : "border-0"}`}
+            >
+              {[
+                { value: "bots", label: "Trading Bots", icon: "🤖" },
+                { value: "settings", label: "Settings", icon: "⚙️" },
+                { value: "help", label: "Help & Docs", icon: "📚" },
+                { value: "logs", label: "Logs", icon: "📋" },
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className={`flex-shrink-0 rounded-lg mx-1 my-2 border-b-0 text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 whitespace-nowrap transition-all font-semibold group ${theme === "dark"
+                    ? "text-gray-400 hover:text-white data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/40 data-[state=active]:to-purple-600/40 data-[state=active]:border data-[state=active]:border-blue-400/30 data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/20"
+                    : "text-gray-600 hover:text-gray-900 data-[state=active]:text-blue-700 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-50 data-[state=active]:to-purple-50 data-[state=active]:border data-[state=active]:border-blue-300 data-[state=active]:shadow-md"
+                    }`}
+                >
+                  <span className="mr-1.5">{tab.icon}</span>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-          <div className="w-full p-4 sm:p-6">
-            <TabsContent value="bots" className="mt-0">
+          <div className={`w-full p-4 sm:p-6 backdrop-blur-sm ${theme === "dark" ? "bg-gradient-to-br from-[#0f1629]/30 to-[#1a2235]/20" : "bg-white/50"}`}>
+            <TabsContent value="bots" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <AutoBotTab theme={theme} symbol="" />
             </TabsContent>
 
-            <TabsContent value="settings" className="mt-0">
+            <TabsContent value="settings" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SettingsPanel />
             </TabsContent>
 
-            <TabsContent value="help" className="mt-0">
+            <TabsContent value="help" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <HelpPanel />
             </TabsContent>
 
-            <TabsContent value="logs" className="mt-0">
+            <TabsContent value="logs" className="mt-0 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <ConnectionLogs logs={connectionLogs} />
             </TabsContent>
           </div>

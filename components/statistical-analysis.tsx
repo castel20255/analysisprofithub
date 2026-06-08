@@ -42,10 +42,10 @@ function LiveNumber({ value, decimals = 1 }: { value: number; decimals?: number 
 // Animated progress bar
 function LiveBar({ pct, colorClass, glowColor }: { pct: number; colorClass: string; glowColor: string }) {
   return (
-    <div className="h-3 w-full rounded-full bg-black/10 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden p-px">
+    <div className="h-3.5 w-full rounded-full bg-gradient-to-r from-white/5 to-white/[0.02] dark:from-white/10 dark:to-white/5 border border-white/10 dark:border-white/20 overflow-hidden p-px backdrop-blur-sm">
       <div
-        className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass}`}
-        style={{ width: `${Math.min(100, pct)}%`, boxShadow: `0 0 10px ${glowColor}` }}
+        className={`h-full rounded-full transition-all duration-700 ease-out ${colorClass} shadow-lg`}
+        style={{ width: `${Math.min(100, pct)}%`, boxShadow: `0 0 15px ${glowColor}, inset 0 0 8px ${glowColor}40` }}
       />
     </div>
   )
@@ -128,29 +128,37 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
   const bgCardClass = isDark ? "bg-[#1A1A1A]/80 border-gray-800" : "bg-[#F5F5F5] border-gray-200"
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* ── Header ── */}
-      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b ${isDark ? "border-white/[0.06]" : "border-gray-200"}`}>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-[#0066FF]/10 border border-[#0066FF]/20">
-            <Cpu className="h-5 w-5 text-[#0066FF]" />
+      <div className={`relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl backdrop-blur-xl border transition-all duration-300 ${isDark 
+        ? "bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-blue-600/10 border-blue-400/30 shadow-lg shadow-blue-500/10" 
+        : "bg-gradient-to-r from-blue-50/50 via-white to-purple-50/50 border-blue-200/50 shadow-sm"}`}>
+        <div className="flex items-center gap-4">
+          <div className={`p-3 rounded-xl backdrop-blur-md transition-all duration-300 ${isDark
+            ? "bg-gradient-to-br from-blue-500/30 to-purple-500/20 border border-blue-400/50 shadow-lg shadow-blue-500/20"
+            : "bg-gradient-to-br from-blue-100/50 to-purple-100/50 border border-blue-200/50"}`}>
+            <Cpu className={`h-6 w-6 ${isDark ? "text-blue-300" : "text-blue-600"}`} />
           </div>
-          <div>
-            <h3 className={`text-base font-black uppercase tracking-tight flex items-center gap-2 ${textTitleClass}`}>
+          <div className="flex-1">
+            <h3 className={`text-lg font-black uppercase tracking-tight flex items-center gap-2 ${textTitleClass}`}>
               Quantum Statistics
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/20 text-[8px] font-black text-[#00D4AA] uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00D4AA] animate-pulse" />
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${isDark
+                ? "bg-gradient-to-r from-emerald-500/30 to-emerald-500/20 border border-emerald-400/50 text-emerald-300 shadow-lg shadow-emerald-500/20"
+                : "bg-gradient-to-r from-emerald-100/50 to-emerald-100/30 border border-emerald-300/50 text-emerald-700"}`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 LIVE
               </span>
             </h3>
-            <p className={`text-[10px] font-bold mt-0.5 ${textSubClass}`}>
-              Real-time distribution · <span className="text-[#0066FF] font-extrabold">{recentDigits.length}</span> digits sampled
+            <p className={`text-[11px] font-semibold mt-1 ${textSubClass}`}>
+              Real-time distribution · <span className="text-blue-400 font-bold">{recentDigits.length}</span> digits analyzed
             </p>
           </div>
         </div>
 
         {/* Strategy selector */}
-        <div className={`flex gap-1 p-1 rounded-xl border ${isDark ? "bg-black/40 border-white/[0.06]" : "bg-white border-gray-200"}`}>
+        <div className={`flex gap-1.5 p-1.5 rounded-xl border backdrop-blur-md transition-all ${isDark 
+          ? "bg-black/30 border-white/10 shadow-lg shadow-black/20" 
+          : "bg-white/40 border-white/60 shadow-sm"}`}>
           {STRATEGIES.map(s => {
             const Icon = s.icon
             const isActive = activeStrategy === s.id
@@ -158,11 +166,15 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               <button
                 key={s.id}
                 onClick={() => setActiveStrategy(s.id)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide flex items-center gap-1.5 transition-all duration-200 ${
-                  isActive ? s.activeClass : isDark ? "text-white/40 hover:text-white/70 hover:bg-white/5" : "text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wide flex items-center gap-1.5 transition-all duration-300 backdrop-blur-sm ${
+                  isActive 
+                    ? `${s.activeClass} scale-105 shadow-xl` 
+                    : isDark 
+                      ? "text-white/50 hover:text-white/80 hover:bg-white/10" 
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
                 }`}
               >
-                <Icon className="h-3 w-3 shrink-0" />
+                <Icon className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{s.label}</span>
                 <span className="sm:hidden">{s.shortLabel}</span>
               </button>
@@ -180,8 +192,10 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
             {/* Dual gauge */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Under card */}
-              <div className={`relative overflow-hidden group p-6 rounded-lg border shadow-sm ${bgCardClass}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-emerald-600/15 via-black/40 to-black/30 border-emerald-400/30 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:border-emerald-400/50"
+                : "bg-gradient-to-br from-emerald-50/60 via-white/40 to-white/30 border-emerald-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
                   <TrendingDown className="h-24 w-24 text-[#00D4AA] -rotate-12" />
                 </div>
                 <div className="relative space-y-3">
@@ -222,8 +236,10 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               </div>
 
               {/* Over card */}
-              <div className={`relative overflow-hidden group p-6 rounded-lg border shadow-sm ${bgCardClass}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
+                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
                   <TrendingUp className="h-24 w-24 text-[#0066FF] rotate-12" />
                 </div>
                 <div className="relative space-y-3">
@@ -265,7 +281,9 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
             </div>
 
             {/* Signal bar */}
-            <div className={`flex items-center justify-between px-6 py-4 rounded-lg border shadow-sm ${bgCardClass}`}>
+            <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+              ? "bg-gradient-to-r from-yellow-600/15 via-black/40 to-black/30 border-yellow-400/30 shadow-lg shadow-yellow-500/10"
+              : "bg-gradient-to-r from-yellow-50/60 via-white/40 to-white/30 border-yellow-200/50 shadow-sm"}`}>
               <div className="flex items-center gap-2">
                 <Zap className={`h-4 w-4 ${overUnderStats.underPct > overUnderStats.overPct ? "text-[#00D4AA]" : "text-[#0066FF]"}`} />
                 <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
@@ -287,7 +305,9 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Even */}
-              <div className={`p-6 rounded-lg border shadow-sm relative overflow-hidden group space-y-4 ${bgCardClass}`}>
+              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-lg font-bold text-[#0066FF] mb-1">Even</div>
@@ -307,7 +327,9 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               </div>
 
               {/* Odd */}
-              <div className={`p-6 rounded-lg border shadow-sm relative overflow-hidden group space-y-4 ${bgCardClass}`}>
+              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                ? "bg-gradient-to-br from-orange-600/15 via-black/40 to-black/30 border-orange-400/30 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 hover:border-orange-400/50"
+                : "bg-gradient-to-br from-orange-50/60 via-white/40 to-white/30 border-orange-200/50 shadow-sm hover:shadow-md"}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <div className="text-lg font-bold text-[#FF6B35] mb-1">Odd</div>
@@ -327,7 +349,9 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               </div>
             </div>
 
-            <div className={`flex items-center justify-between px-6 py-4 rounded-lg border shadow-sm ${bgCardClass}`}>
+            <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+              ? "bg-gradient-to-r from-purple-600/15 via-black/40 to-black/30 border-purple-400/30 shadow-lg shadow-purple-500/10"
+              : "bg-gradient-to-r from-purple-50/60 via-white/40 to-white/30 border-purple-200/50 shadow-sm"}`}>
               <div className="flex items-center gap-2">
                 <Zap className={`h-4 w-4 ${evenOddStats.evenPct > evenOddStats.oddPct ? "text-[#0066FF]" : "text-[#FF6B35]"}`} />
                 <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
@@ -351,10 +375,14 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                 const isBest = f.digit === matchesStats.bestDigit
                 const barH = Math.max(8, (f.percentage / Math.max(...matchesStats.sorted.map(d => d.percentage))) * 60)
                 return (
-                  <div key={f.digit} className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                  <div key={f.digit} className={`flex flex-col items-center gap-1 p-2 rounded-xl border backdrop-blur-sm transition-all ${
                     isBest
-                      ? "bg-[#00D4AA]/10 border-[#00D4AA]/40 shadow-[0_0_12px_rgba(0,212,170,0.25)]"
-                      : isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-gray-200"
+                      ? isDark 
+                        ? "bg-emerald-500/20 border-emerald-400/60 shadow-lg shadow-emerald-500/30 scale-105"
+                        : "bg-emerald-100/50 border-emerald-400/50 shadow-md"
+                      : isDark 
+                        ? "bg-white/[0.04] border-white/10 hover:bg-white/[0.08]" 
+                        : "bg-white/50 border-gray-300/50 hover:bg-white/70"
                   }`}>
                     {/* Bar */}
                     <div className="w-full flex items-end justify-center" style={{ height: "56px" }}>
@@ -371,9 +399,13 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               })}
             </div>
             {/* Recommendation */}
-            <div className={`flex items-center gap-5 p-6 rounded-lg border shadow-sm ${bgCardClass}`}>
-              <div className="w-12 h-12 rounded-2xl bg-[#00D4AA]/15 border border-[#00D4AA]/20 flex items-center justify-center shrink-0">
-                <Star className="h-6 w-6 text-[#00D4AA]" />
+            <div className={`flex items-center gap-5 p-6 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+              ? "bg-gradient-to-r from-emerald-600/15 via-black/40 to-black/30 border-emerald-400/30 shadow-lg shadow-emerald-500/15"
+              : "bg-gradient-to-r from-emerald-50/60 via-white/40 to-white/30 border-emerald-200/50 shadow-sm"}`}>
+              <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 backdrop-blur-sm transition-all ${isDark
+                ? "bg-emerald-500/20 border-emerald-400/50 shadow-lg shadow-emerald-500/20"
+                : "bg-emerald-100/50 border-emerald-300/50"}`}>
+                <Star className="h-6 w-6 text-emerald-400" />
               </div>
               <div className="flex-1">
                 <p className="text-[9px] font-black text-[#00D4AA] uppercase tracking-widest mb-0.5">Best Match Target</p>
@@ -394,10 +426,14 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                 const isSafest = f.digit === differsStats.safestDigit
                 const barH = Math.max(8, (safety / 100) * 60)
                 return (
-                  <div key={f.digit} className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                  <div key={f.digit} className={`flex flex-col items-center gap-1 p-2 rounded-xl border backdrop-blur-sm transition-all ${
                     isSafest
-                      ? "bg-[#FF6B35]/10 border-[#FF6B35]/40 shadow-[0_0_12px_rgba(255,107,53,0.25)]"
-                      : isDark ? "bg-white/[0.02] border-white/[0.06]" : "bg-white border-gray-200"
+                      ? isDark
+                        ? "bg-orange-500/20 border-orange-400/60 shadow-lg shadow-orange-500/30 scale-105"
+                        : "bg-orange-100/50 border-orange-400/50 shadow-md"
+                      : isDark
+                        ? "bg-white/[0.04] border-white/10 hover:bg-white/[0.08]"
+                        : "bg-white/50 border-gray-300/50 hover:bg-white/70"
                   }`}>
                     <div className="w-full flex items-end justify-center" style={{ height: "56px" }}>
                       <div
@@ -413,9 +449,13 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
               })}
             </div>
             {/* Recommendation */}
-            <div className={`flex items-center gap-5 p-6 rounded-lg border shadow-sm ${bgCardClass}`}>
-              <div className="w-12 h-12 rounded-2xl bg-[#FF6B35]/15 border border-[#FF6B35]/20 flex items-center justify-center shrink-0">
-                <ShieldAlert className="h-6 w-6 text-[#FF6B35]" />
+            <div className={`flex items-center gap-5 p-6 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+              ? "bg-gradient-to-r from-orange-600/15 via-black/40 to-black/30 border-orange-400/30 shadow-lg shadow-orange-500/15"
+              : "bg-gradient-to-r from-orange-50/60 via-white/40 to-white/30 border-orange-200/50 shadow-sm"}`}>
+              <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 backdrop-blur-sm transition-all ${isDark
+                ? "bg-orange-500/20 border-orange-400/50 shadow-lg shadow-orange-500/20"
+                : "bg-orange-100/50 border-orange-300/50"}`}>
+                <ShieldAlert className="h-6 w-6 text-orange-400" />
               </div>
               <div className="flex-1">
                 <p className="text-[9px] font-black text-[#FF6B35] uppercase tracking-widest mb-0.5">Safest Differs Target</p>
