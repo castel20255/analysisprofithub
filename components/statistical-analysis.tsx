@@ -315,6 +315,79 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
                 </span>
               </span>
             </div>
+
+            {/* Trading Recommendations - Entry/Exit Points */}
+            <div className="mt-6 space-y-3">
+              <h3 className={`text-xs font-black uppercase tracking-widest px-2 ${textSubClass}`}>Safe Entry & Exit Strategy (Last 15 Digits)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Under Entry/Exit */}
+                <div className={`p-4 rounded-xl border backdrop-blur-sm transition-all ${isDark
+                  ? "bg-emerald-500/10 border-emerald-400/40 shadow-lg shadow-emerald-500/10"
+                  : "bg-emerald-50/50 border-emerald-300/50"}`}>
+                  <div className={`text-[11px] font-black uppercase tracking-widest ${isDark ? "text-emerald-300" : "text-emerald-700"} mb-2`}>Under Entry</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500">Entry Point:</span>
+                      <span className={`font-black text-xs ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>{overUnderStats.bestUnderDigit} - {overUnderStats.bestUnderDigit + 1}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500">Exit Point:</span>
+                      <span className={`font-black text-xs ${isDark ? "text-emerald-400" : "text-emerald-600"}`}>{Math.max(0, overUnderStats.bestUnderDigit - 1)} - {overUnderStats.bestUnderDigit}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-emerald-400/20">
+                      <span className="text-[10px] text-gray-500">Market Power:</span>
+                      <span className={`font-mono font-bold text-xs ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>{overUnderStats.underPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Over Entry/Exit */}
+                <div className={`p-4 rounded-xl border backdrop-blur-sm transition-all ${isDark
+                  ? "bg-blue-500/10 border-blue-400/40 shadow-lg shadow-blue-500/10"
+                  : "bg-blue-50/50 border-blue-300/50"}`}>
+                  <div className={`text-[11px] font-black uppercase tracking-widest ${isDark ? "text-blue-300" : "text-blue-700"} mb-2`}>Over Entry</div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500">Entry Point:</span>
+                      <span className={`font-black text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>{overUnderStats.bestOverDigit} - {overUnderStats.bestOverDigit + 1}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500">Exit Point:</span>
+                      <span className={`font-black text-xs ${isDark ? "text-blue-400" : "text-blue-600"}`}>{Math.max(5, overUnderStats.bestOverDigit - 1)} - {overUnderStats.bestOverDigit}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-blue-400/20">
+                      <span className="text-[10px] text-gray-500">Market Power:</span>
+                      <span className={`font-mono font-bold text-xs ${isDark ? "text-blue-300" : "text-blue-700"}`}>{overUnderStats.overPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Best Strategy Recommendation */}
+              <div className={`p-4 rounded-xl border-2 backdrop-blur-sm transition-all ${isDark
+                ? `bg-gradient-to-r ${overUnderStats.underPct > overUnderStats.overPct 
+                  ? "from-emerald-600/20 to-emerald-600/10 border-emerald-400/50" 
+                  : "from-blue-600/20 to-blue-600/10 border-blue-400/50"}`
+                : `bg-gradient-to-r ${overUnderStats.underPct > overUnderStats.overPct 
+                  ? "from-emerald-100/50 to-emerald-50/50 border-emerald-400" 
+                  : "from-blue-100/50 to-blue-50/50 border-blue-400"}`}`}>
+                <div className={`text-[10px] font-black uppercase tracking-widest mb-2 ${isDark 
+                  ? overUnderStats.underPct > overUnderStats.overPct ? "text-emerald-300" : "text-blue-300"
+                  : overUnderStats.underPct > overUnderStats.overPct ? "text-emerald-700" : "text-blue-700"}`}>
+                  Recommended Safe Trade
+                </div>
+                <div className={`text-sm font-black ${isDark 
+                  ? overUnderStats.underPct > overUnderStats.overPct ? "text-emerald-300" : "text-blue-300"
+                  : overUnderStats.underPct > overUnderStats.overPct ? "text-emerald-700" : "text-blue-700"}`}>
+                  {overUnderStats.underPct > overUnderStats.overPct 
+                    ? `UNDER (0-4): Digit ${overUnderStats.bestUnderDigit}` 
+                    : `OVER (5-9): Digit ${overUnderStats.bestOverDigit}`}
+                </div>
+                <div className={`text-[9px] mt-1 ${textSubClass}`}>
+                  Confidence: {Math.abs(overUnderStats.underPct - overUnderStats.overPct).toFixed(1)}% | Based on last 15 digits analysis
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
