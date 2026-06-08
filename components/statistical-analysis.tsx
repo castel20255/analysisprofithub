@@ -52,14 +52,13 @@ function LiveBar({ pct, colorClass, glowColor }: { pct: number; colorClass: stri
 }
 
 const STRATEGIES = [
-  { id: "over-under",  label: "Over/Under",  shortLabel: "O/U",  icon: ArrowUpDown,  activeClass: "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/25" },
-  { id: "even-odd",    label: "Even/Odd",    shortLabel: "E/O",  icon: Hash,          activeClass: "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/25" },
+  { id: "all",         label: "All Stats",   shortLabel: "ALL",  icon: Cpu,           activeClass: "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/25" },
   { id: "matches",     label: "Matches",     shortLabel: "MTH",  icon: CheckSquare,   activeClass: "bg-[#00D4AA] text-white shadow-lg shadow-[#00D4AA]/25" },
   { id: "differs",     label: "Differs",     shortLabel: "DIF",  icon: XCircle,       activeClass: "bg-[#FF6B35] text-white shadow-lg shadow-[#FF6B35]/25" },
 ]
 
 export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: StatisticalAnalysisProps) {
-  const [activeStrategy, setActiveStrategy] = useState("over-under")
+  const [activeStrategy, setActiveStrategy] = useState("all")
   const [tick, setTick] = useState(0)
 
   // Live pulse every 1.5 s to simulate "live" feel
@@ -186,182 +185,184 @@ export function StatisticalAnalysis({ analysis, recentDigits, theme = "dark" }: 
       {/* ── Content panels ── */}
       <div className="min-h-[260px]">
 
-        {/* OVER / UNDER */}
-        {activeStrategy === "over-under" && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {/* Dual gauge */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Under card */}
-              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
-                ? "bg-gradient-to-br from-emerald-600/15 via-black/40 to-black/30 border-emerald-400/30 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:border-emerald-400/50"
-                : "bg-gradient-to-br from-emerald-50/60 via-white/40 to-white/30 border-emerald-200/50 shadow-sm hover:shadow-md"}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
-                  <TrendingDown className="h-24 w-24 text-[#00D4AA] -rotate-12" />
-                </div>
-                <div className="relative space-y-3">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="text-lg font-bold text-[#00D4AA] mb-1">Under (0-4)</div>
-                    </div>
-                    <span className="text-4xl font-black tabular-nums font-mono text-[#00D4AA]">
-                      <LiveNumber value={overUnderStats.underPct} />%
-                    </span>
+        {/* ALL STATS - Over/Under + Even/Odd Unified View */}
+        {activeStrategy === "all" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* OVER / UNDER SECTION */}
+            <div className="space-y-3">
+              <h3 className={`text-sm font-black uppercase tracking-widest px-6 ${textSubClass}`}>Over / Under Distribution</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Under card */}
+                <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                  ? "bg-gradient-to-br from-emerald-600/15 via-black/40 to-black/30 border-emerald-400/30 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:border-emerald-400/50"
+                  : "bg-gradient-to-br from-emerald-50/60 via-white/40 to-white/30 border-emerald-200/50 shadow-sm hover:shadow-md"}`}>
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                    <TrendingDown className="h-24 w-24 text-[#00D4AA] -rotate-12" />
                   </div>
-                  <LiveBar pct={overUnderStats.underPct} colorClass="bg-[#00D4AA]" glowColor="rgba(0,212,170,0.4)" />
-                  
-                  {/* Per-digit mini bars */}
-                  <div className="grid grid-cols-5 gap-1 pt-1">
-                    {overUnderStats.underDigits.map(d => (
-                      <div key={d.digit} className="flex flex-col items-center gap-1">
-                        <div className={`w-full h-8 rounded-md overflow-hidden flex items-end ${isDark ? "bg-white/5" : "bg-black/5"}`}>
-                          <div
-                            className="w-full bg-[#00D4AA]/70 rounded-md transition-all duration-700"
-                            style={{ height: `${d.percentage * 1.8}%` }}
-                          />
-                        </div>
-                        <span className={`text-[9px] font-black ${isDark ? "text-white/50" : "text-gray-500"}`}>{d.digit}</span>
-                        <span className="text-[8px] text-[#00D4AA] font-mono font-bold">{d.percentage.toFixed(0)}%</span>
+                  <div className="relative space-y-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-lg font-bold text-[#00D4AA] mb-1">Under (0-4)</div>
                       </div>
-                    ))}
+                      <span className="text-4xl font-black tabular-nums font-mono text-[#00D4AA]">
+                        <LiveNumber value={overUnderStats.underPct} />%
+                      </span>
+                    </div>
+                    <LiveBar pct={overUnderStats.underPct} colorClass="bg-[#00D4AA]" glowColor="rgba(0,212,170,0.4)" />
+                    
+                    {/* Per-digit mini bars */}
+                    <div className="grid grid-cols-5 gap-1 pt-1">
+                      {overUnderStats.underDigits.map(d => (
+                        <div key={d.digit} className="flex flex-col items-center gap-1">
+                          <div className={`w-full h-8 rounded-md overflow-hidden flex items-end ${isDark ? "bg-white/5" : "bg-black/5"}`}>
+                            <div
+                              className="w-full bg-[#00D4AA]/70 rounded-md transition-all duration-700"
+                              style={{ height: `${d.percentage * 1.8}%` }}
+                            />
+                          </div>
+                          <span className={`text-[9px] font-black ${isDark ? "text-white/50" : "text-gray-500"}`}>{d.digit}</span>
+                          <span className="text-[8px] text-[#00D4AA] font-mono font-bold">{d.percentage.toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Best */}
+                    <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-lg font-black tabular-nums ${textTitleClass}`}>{overUnderStats.bestUnderDigit}</span>
+                        <span className="text-[9px] font-mono font-bold text-[#00D4AA]">{overUnderStats.bestUnderPct.toFixed(1)}%</span>
+                      </div>
+                    </div>
                   </div>
-                  {/* Best */}
-                  <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-lg font-black tabular-nums ${textTitleClass}`}>{overUnderStats.bestUnderDigit}</span>
-                      <span className="text-[9px] font-mono font-bold text-[#00D4AA]">{overUnderStats.bestUnderPct.toFixed(1)}%</span>
+                </div>
+
+                {/* Over card */}
+                <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
+                  ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                  : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
+                    <TrendingUp className="h-24 w-24 text-[#0066FF] rotate-12" />
+                  </div>
+                  <div className="relative space-y-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-lg font-bold text-[#0066FF] mb-1">Over (5-9)</div>
+                      </div>
+                      <span className="text-4xl font-black tabular-nums font-mono text-[#0066FF]">
+                        <LiveNumber value={overUnderStats.overPct} />%
+                      </span>
+                    </div>
+                    <LiveBar pct={overUnderStats.overPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
+                    
+                    {/* Per-digit mini bars */}
+                    <div className="grid grid-cols-5 gap-1 pt-1">
+                      {overUnderStats.overDigits.map(d => (
+                        <div key={d.digit} className="flex flex-col items-center gap-1">
+                          <div className={`w-full h-8 rounded-md overflow-hidden flex items-end ${isDark ? "bg-white/5" : "bg-black/5"}`}>
+                            <div
+                              className="w-full bg-[#0066FF]/70 rounded-md transition-all duration-700"
+                              style={{ height: `${d.percentage * 1.8}%` }}
+                            />
+                          </div>
+                          <span className={`text-[9px] font-black ${isDark ? "text-white/50" : "text-gray-500"}`}>{d.digit}</span>
+                          <span className="text-[8px] text-[#0066FF] font-mono font-bold">{d.percentage.toFixed(0)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Best */}
+                    <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-lg font-black tabular-nums ${textTitleClass}`}>{overUnderStats.bestOverDigit}</span>
+                        <span className="text-[9px] font-mono font-bold text-[#0066FF]">{overUnderStats.bestOverPct.toFixed(1)}%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Over card */}
-              <div className={`relative overflow-hidden group p-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${isDark
-                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
-                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.05] group-hover:opacity-15 transition-opacity">
-                  <TrendingUp className="h-24 w-24 text-[#0066FF] rotate-12" />
+              {/* Signal bar */}
+              <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+                ? "bg-gradient-to-r from-yellow-600/15 via-black/40 to-black/30 border-yellow-400/30 shadow-lg shadow-yellow-500/10"
+                : "bg-gradient-to-r from-yellow-50/60 via-white/40 to-white/30 border-yellow-200/50 shadow-sm"}`}>
+                <div className="flex items-center gap-2">
+                  <Zap className={`h-4 w-4 ${overUnderStats.underPct > overUnderStats.overPct ? "text-[#00D4AA]" : "text-[#0066FF]"}`} />
+                  <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
                 </div>
-                <div className="relative space-y-3">
+                <span className={`text-sm font-black uppercase tracking-widest ${
+                  overUnderStats.underPct > overUnderStats.overPct ? "text-[#00D4AA]" : "text-[#0066FF]"
+                }`}>
+                  {overUnderStats.underPct > overUnderStats.overPct ? "UNDER BIAS" : "OVER BIAS"}
+                  <span className={`ml-2 text-[10px] font-mono opacity-60 ${textSubClass}`}>
+                    +{Math.abs(overUnderStats.underPct - overUnderStats.overPct).toFixed(1)}%
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {/* EVEN / ODD SECTION */}
+            <div className="space-y-3">
+              <h3 className={`text-sm font-black uppercase tracking-widest px-6 ${textSubClass}`}>Even / Odd Distribution</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Even */}
+                <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                  ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
+                  : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <div className="text-lg font-bold text-[#0066FF] mb-1">Over (5-9)</div>
+                      <div className="text-lg font-bold text-[#0066FF] mb-1">Even</div>
                     </div>
                     <span className="text-4xl font-black tabular-nums font-mono text-[#0066FF]">
-                      <LiveNumber value={overUnderStats.overPct} />%
+                      <LiveNumber value={evenOddStats.evenPct} />%
                     </span>
                   </div>
-                  <LiveBar pct={overUnderStats.overPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
-                  
-                  {/* Per-digit mini bars */}
-                  <div className="grid grid-cols-5 gap-1 pt-1">
-                    {overUnderStats.overDigits.map(d => (
-                      <div key={d.digit} className="flex flex-col items-center gap-1">
-                        <div className={`w-full h-8 rounded-md overflow-hidden flex items-end ${isDark ? "bg-white/5" : "bg-black/5"}`}>
-                          <div
-                            className="w-full bg-[#0066FF]/70 rounded-md transition-all duration-700"
-                            style={{ height: `${d.percentage * 1.8}%` }}
-                          />
-                        </div>
-                        <span className={`text-[9px] font-black ${isDark ? "text-white/50" : "text-gray-500"}`}>{d.digit}</span>
-                        <span className="text-[8px] text-[#0066FF] font-mono font-bold">{d.percentage.toFixed(0)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Best */}
+                  <LiveBar pct={evenOddStats.evenPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
                   <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Hottest digit</span>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-lg font-black tabular-nums ${textTitleClass}`}>{overUnderStats.bestOverDigit}</span>
-                      <span className="text-[9px] font-mono font-bold text-[#0066FF]">{overUnderStats.bestOverPct.toFixed(1)}%</span>
+                      <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestEvenDigit}</span>
+                      <span className="text-[9px] font-mono font-bold text-[#0066FF]">{evenOddStats.bestEvenPct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Odd */}
+                <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
+                  ? "bg-gradient-to-br from-orange-600/15 via-black/40 to-black/30 border-orange-400/30 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 hover:border-orange-400/50"
+                  : "bg-gradient-to-br from-orange-50/60 via-white/40 to-white/30 border-orange-200/50 shadow-sm hover:shadow-md"}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="text-lg font-bold text-[#FF6B35] mb-1">Odd</div>
+                    </div>
+                    <span className="text-4xl font-black tabular-nums font-mono text-[#FF6B35]">
+                      <LiveNumber value={evenOddStats.oddPct} />%
+                    </span>
+                  </div>
+                  <LiveBar pct={evenOddStats.oddPct} colorClass="bg-[#FF6B35]" glowColor="rgba(255,107,53,0.4)" />
+                  <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestOddDigit}</span>
+                      <span className="text-[9px] font-mono font-bold text-[#FF6B35]">{evenOddStats.bestOddPct.toFixed(1)}%</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Signal bar */}
-            <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
-              ? "bg-gradient-to-r from-yellow-600/15 via-black/40 to-black/30 border-yellow-400/30 shadow-lg shadow-yellow-500/10"
-              : "bg-gradient-to-r from-yellow-50/60 via-white/40 to-white/30 border-yellow-200/50 shadow-sm"}`}>
-              <div className="flex items-center gap-2">
-                <Zap className={`h-4 w-4 ${overUnderStats.underPct > overUnderStats.overPct ? "text-[#00D4AA]" : "text-[#0066FF]"}`} />
-                <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
-              </div>
-              <span className={`text-sm font-black uppercase tracking-widest ${
-                overUnderStats.underPct > overUnderStats.overPct ? "text-[#00D4AA]" : "text-[#0066FF]"
-              }`}>
-                {overUnderStats.underPct > overUnderStats.overPct ? "UNDER BIAS" : "OVER BIAS"}
-                <span className={`ml-2 text-[10px] font-mono opacity-60 ${textSubClass}`}>
-                  +{Math.abs(overUnderStats.underPct - overUnderStats.overPct).toFixed(1)}%
-                </span>
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* EVEN / ODD */}
-        {activeStrategy === "even-odd" && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Even */}
-              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
-                ? "bg-gradient-to-br from-blue-600/15 via-black/40 to-black/30 border-blue-400/30 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:border-blue-400/50"
-                : "bg-gradient-to-br from-blue-50/60 via-white/40 to-white/30 border-blue-200/50 shadow-sm hover:shadow-md"}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-lg font-bold text-[#0066FF] mb-1">Even</div>
-                  </div>
-                  <span className="text-4xl font-black tabular-nums font-mono text-[#0066FF]">
-                    <LiveNumber value={evenOddStats.evenPct} />%
+              <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
+                ? "bg-gradient-to-r from-purple-600/15 via-black/40 to-black/30 border-purple-400/30 shadow-lg shadow-purple-500/10"
+                : "bg-gradient-to-r from-purple-50/60 via-white/40 to-white/30 border-purple-200/50 shadow-sm"}`}>
+                <div className="flex items-center gap-2">
+                  <Zap className={`h-4 w-4 ${evenOddStats.evenPct > evenOddStats.oddPct ? "text-[#0066FF]" : "text-[#FF6B35]"}`} />
+                  <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
+                </div>
+                <span className={`text-sm font-black uppercase tracking-widest ${evenOddStats.evenPct > evenOddStats.oddPct ? "text-[#0066FF]" : "text-[#FF6B35]"}`}>
+                  {evenOddStats.evenPct > evenOddStats.oddPct ? "EVEN BIAS" : "ODD BIAS"}
+                  <span className={`ml-2 text-[10px] font-mono opacity-60 ${textSubClass}`}>
+                    +{Math.abs(evenOddStats.evenPct - evenOddStats.oddPct).toFixed(1)}%
                   </span>
-                </div>
-                <LiveBar pct={evenOddStats.evenPct} colorClass="bg-[#0066FF]" glowColor="rgba(0,102,255,0.4)" />
-                <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestEvenDigit}</span>
-                    <span className="text-[9px] font-mono font-bold text-[#0066FF]">{evenOddStats.bestEvenPct.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Odd */}
-              <div className={`p-6 rounded-2xl border backdrop-blur-xl relative overflow-hidden group space-y-4 transition-all ${isDark
-                ? "bg-gradient-to-br from-orange-600/15 via-black/40 to-black/30 border-orange-400/30 shadow-lg shadow-orange-500/10 hover:shadow-orange-500/20 hover:border-orange-400/50"
-                : "bg-gradient-to-br from-orange-50/60 via-white/40 to-white/30 border-orange-200/50 shadow-sm hover:shadow-md"}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="text-lg font-bold text-[#FF6B35] mb-1">Odd</div>
-                  </div>
-                  <span className="text-4xl font-black tabular-nums font-mono text-[#FF6B35]">
-                    <LiveNumber value={evenOddStats.oddPct} />%
-                  </span>
-                </div>
-                <LiveBar pct={evenOddStats.oddPct} colorClass="bg-[#FF6B35]" glowColor="rgba(255,107,53,0.4)" />
-                <div className={`flex items-center justify-between pt-1 border-t ${isDark ? "border-white/5" : "border-gray-200"}`}>
-                  <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Top digit</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-lg font-black ${textTitleClass}`}>{evenOddStats.bestOddDigit}</span>
-                    <span className="text-[9px] font-mono font-bold text-[#FF6B35]">{evenOddStats.bestOddPct.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={`flex items-center justify-between px-6 py-4 rounded-2xl border backdrop-blur-xl transition-all ${isDark
-              ? "bg-gradient-to-r from-purple-600/15 via-black/40 to-black/30 border-purple-400/30 shadow-lg shadow-purple-500/10"
-              : "bg-gradient-to-r from-purple-50/60 via-white/40 to-white/30 border-purple-200/50 shadow-sm"}`}>
-              <div className="flex items-center gap-2">
-                <Zap className={`h-4 w-4 ${evenOddStats.evenPct > evenOddStats.oddPct ? "text-[#0066FF]" : "text-[#FF6B35]"}`} />
-                <span className={`text-xs font-black uppercase tracking-widest ${textTitleClass}`}>AI Bias Signal</span>
-              </div>
-              <span className={`text-sm font-black uppercase tracking-widest ${evenOddStats.evenPct > evenOddStats.oddPct ? "text-[#0066FF]" : "text-[#FF6B35]"}`}>
-                {evenOddStats.evenPct > evenOddStats.oddPct ? "EVEN BIAS" : "ODD BIAS"}
-                <span className={`ml-2 text-[10px] font-mono opacity-60 ${textSubClass}`}>
-                  +{Math.abs(evenOddStats.evenPct - evenOddStats.oddPct).toFixed(1)}%
                 </span>
-              </span>
+              </div>
             </div>
           </div>
         )}
