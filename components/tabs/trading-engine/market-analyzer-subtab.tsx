@@ -108,7 +108,7 @@ function AnalysisCard({ analysis, theme }: AnalysisCardProps) {
               <AlertTriangle className="h-4 w-4" /> NO SIGNAL
             </>
           )}
-        </p>
+        </div>
       </div>
 
       {/* Key Metrics Row */}
