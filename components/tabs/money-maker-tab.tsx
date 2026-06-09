@@ -7,7 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
 import { LastDigitsChart } from "@/components/charts/last-digits-chart"
-import { TrendingUp, TrendingDown, AlertCircle, Settings, BarChart3, Zap } from "lucide-react"
+import { TrendingUp, TrendingDown, AlertCircle, Settings, BarChart3, Zap, Sparkles } from "lucide-react"
+import { AdvancedSignalsGenerator } from "@/components/advanced-signals-generator"
+import { MarketZoneDisplay } from "@/components/market-zone-display"
+import { HighProbabilityTrader } from "@/components/high-probability-trader"
+import { DigitDistributionCards } from "@/components/digit-distribution-cards"
+import { TradingEngine } from "@/lib/trading-engine"
 
 interface StrategyAnalysis {
   type: "over-under" | "even-odd" | "rise-fall" | "differs" | "matches" | "recovery"
@@ -40,6 +45,8 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
   const [activeStrategy, setActiveStrategy] = useState("over-under")
   const [activeTabs, setActiveTabs] = useState("analysis")
   const [marketToggle, setMarketToggle] = useState(true)
+  const [marketAnalysis, setMarketAnalysis] = useState<any>(null)
+  const [accountBalance, setAccountBalance] = useState(1000)
   
   // Trading Console State
   const [tradeStake, setTradeStake] = useState(10)
@@ -65,6 +72,14 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
 
   const UNDER_RANGE = [0, 1, 2, 3, 4]
   const OVER_RANGE = [5, 6, 7, 8, 9]
+
+  // Calculate market analysis for advanced signals
+  useEffect(() => {
+    if (recentDigits.length >= 60) {
+      const analysis = TradingEngine.analyzeOverUnder(recentDigits.slice(-60))
+      setMarketAnalysis(analysis)
+    }
+  }, [recentDigits])
 
   const analyzeOverUnder = (): StrategyAnalysis => {
     const last500 = recentDigits.slice(-500)
@@ -302,6 +317,34 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
   return (
     <div className="space-y-6">
       <Tabs value={activeTabs} onValueChange={setActiveTabs} className="w-full">
+        {/* Tab Navigation */}
+        <div className={`flex gap-2 mb-6 overflow-x-auto pb-2 ${theme === "dark" ? "bg-slate-900/30" : "bg-slate-100"} rounded-lg p-2`}>
+          {[
+            { value: "analysis", label: "Analysis" },
+            { value: "advanced-signals", label: "Advanced Signals" },
+            { value: "market-zones", label: "Market Zones" },
+            { value: "trading-console", label: "Trading Console" },
+            { value: "high-probability", label: "High-Probability" },
+            { value: "smart24", label: "Smart24" },
+          ].map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTabs(tab.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                activeTabs === tab.value
+                  ? theme === "dark"
+                    ? "bg-indigo-600 text-white shadow-lg"
+                    : "bg-indigo-500 text-white"
+                  : theme === "dark"
+                  ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                  : "bg-white text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <TabsContent value="analysis" className="space-y-6">
           {/* Strategy Selector */}
           <div
@@ -419,11 +462,20 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
             </div>
 
             {lastDigits.length > 0 && (
-              <div className="mt-6">
-                <p className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Last 50 Digits Chart
-                </p>
-                <LastDigitsChart digits={lastDigits} />
+              <div className="mt-6 space-y-6">
+                <div>
+                  <p className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Last 50 Digits Chart
+                  </p>
+                  <LastDigitsChart digits={lastDigits} />
+                </div>
+
+                <div>
+                  <p className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Digit Distribution Analysis
+                  </p>
+                  <DigitDistributionCards ticks={recentDigits} theme={theme} />
+                </div>
               </div>
             )}
           </div>
@@ -615,6 +667,61 @@ export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, avail
               </div>
             )}
           </div>
+        </TabsContent>
+
+        {/* Advanced Signals Tab */}
+        <TabsContent value="advanced-signals" className="space-y-6">
+          <div
+            className={`rounded-xl p-6 border ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-indigo-500/20"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <h2 className={`text-2xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              <Sparkles className="w-6 h-6 text-indigo-400" />
+              Advanced Signal Analysis
+            </h2>
+            <AdvancedSignalsGenerator ticks={recentDigits} theme={theme} />
+          </div>
+        </TabsContent>
+
+        {/* Market Zones Tab */}
+        <TabsContent value="market-zones" className="space-y-6">
+          <div
+            className={`rounded-xl p-6 border ${
+              theme === "dark"
+                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-emerald-500/20"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              🗺️ Market Zone Detection
+            </h2>
+            {marketAnalysis && (
+              <MarketZoneDisplay 
+                overPower={marketAnalysis.overPower}
+                underPower={marketAnalysis.underPower}
+                volatility={marketAnalysis.volatility}
+                trending={marketAnalysis.trendingMarket !== "neutral"}
+                theme={theme}
+              />
+            )}
+            {!marketAnalysis && (
+              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                Waiting for market data...
+              </p>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* High-Probability Trader Tab */}
+        <TabsContent value="high-probability" className="space-y-6">
+          <HighProbabilityTrader 
+            ticks={recentDigits}
+            accountBalance={accountBalance}
+            theme={theme}
+          />
         </TabsContent>
       </Tabs>
 
