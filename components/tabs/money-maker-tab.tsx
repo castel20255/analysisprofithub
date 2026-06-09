@@ -1,37 +1,43 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
-import { LastDigitsChart } from "@/components/charts/last-digits-chart"
-import { TrendingUp, TrendingDown, AlertCircle, Settings, BarChart3, Zap, Sparkles } from "lucide-react"
-import { AdvancedSignalsGenerator } from "@/components/advanced-signals-generator"
-import { MarketZoneDisplay } from "@/components/market-zone-display"
-import { HighProbabilityTrader } from "@/components/high-probability-trader"
-import { DigitDistributionCards } from "@/components/digit-distribution-cards"
-import { TradingEngine } from "@/lib/trading-engine"
-
-interface StrategyAnalysis {
-  type: "over-under" | "even-odd" | "rise-fall" | "differs" | "matches" | "recovery"
-  signal: string | null
-  confidence: number
-  entryPoint: string | null
-  warning: string | null
-  distribution: Record<number, number>
-}
-
-interface TradeHistory {
-  id: string
-  strategy: string
-  direction: string
-  stake: number
-  result: "win" | "loss" | "pending"
-  profit: number
-  timestamp: number
-}
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  Cell,
+} from "recharts"
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  Settings,
+  BarChart3,
+  Zap,
+  Sparkles,
+  Radar,
+  Activity,
+  Flame,
+  Shield,
+  Target,
+  Lock,
+  Unlock,
+} from "lucide-react"
+import { QuantumEdgeEngine, type TickData, type Signal, type MarketAnalysis, type DigitDistribution } from "@/lib/quantum-edge-engine"
 
 interface MoneyMakerTabProps {
   theme?: "light" | "dark"
@@ -41,759 +47,661 @@ interface MoneyMakerTabProps {
   onSymbolChange?: (symbol: string) => void
 }
 
-export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, availableSymbols, onSymbolChange }: MoneyMakerTabProps) {
-  const [activeStrategy, setActiveStrategy] = useState("over-under")
-  const [activeTabs, setActiveTabs] = useState("analysis")
-  const [marketToggle, setMarketToggle] = useState(true)
-  const [marketAnalysis, setMarketAnalysis] = useState<any>(null)
-  const [accountBalance, setAccountBalance] = useState(1000)
+export function MoneyMakerTab({
+  theme = "dark",
+  recentDigits = [],
+  symbol,
+  availableSymbols,
+  onSymbolChange,
+}: MoneyMakerTabProps) {
+  const [activeTab, setActiveTab] = useState("market-scanner")
+  const [autoScanning, setAutoScanning] = useState(true)
+  const [selectedStrategy, setSelectedStrategy] = useState("over-under")
   
-  // Trading Console State
-  const [tradeStake, setTradeStake] = useState(10)
-  const [tradeMarketSelection, setTradeMarketSelection] = useState("over")
-  const [contractType, setContractType] = useState("over-under")
+  // Trading state
+  const [stake, setStake] = useState(10)
   const [ticks, setTicks] = useState(5)
-  const [entryPoint, setEntryPoint] = useState(4)
-  const [martingale, setMartingale] = useState(false)
-  const [martingaleMultiplier, setMartingaleMultiplier] = useState(1.5)
+  const [martingaleEnabled, setMartingaleEnabled] = useState(false)
   const [autoTrading, setAutoTrading] = useState(false)
-  const [tradeHistory, setTradeHistory] = useState<TradeHistory[]>([])
+  const [trades, setTrades] = useState<any[]>([])
   
-  // Recovery Settings
-  const [recoveryMode, setRecoveryMode] = useState(false)
+  // Recovery settings
   const [consecutiveLossesLimit, setConsecutiveLossesLimit] = useState(3)
   const [consecutiveLosses, setConsecutiveLosses] = useState(0)
-
-  // Smart24 Settings
+  
+  // Smart24 settings
   const [smart24Enabled, setSmart24Enabled] = useState(false)
   const [tradingHours, setTradingHours] = useState(24)
-  const [accountBalancePercent, setAccountBalancePercent] = useState(2)
-  const [stopLossConsecutive, setStopLossConsecutive] = useState(5)
+  const [riskPercent, setRiskPercent] = useState(2)
+  const [accountBalance, setAccountBalance] = useState(10000)
 
-  const UNDER_RANGE = [0, 1, 2, 3, 4]
-  const OVER_RANGE = [5, 6, 7, 8, 9]
-
-  // Calculate market analysis for advanced signals
-  useEffect(() => {
-    if (recentDigits.length >= 60) {
-      const analysis = TradingEngine.analyzeOverUnder(recentDigits.slice(-60))
-      setMarketAnalysis(analysis)
-    }
+  // Generate tick data from digits
+  const tickData: TickData[] = useMemo(() => {
+    return recentDigits.map((digit, idx) => ({
+      digit,
+      timestamp: Date.now() - (recentDigits.length - idx) * 1000,
+      price: digit,
+    }))
   }, [recentDigits])
 
-  const analyzeOverUnder = (): StrategyAnalysis => {
-    const last500 = recentDigits.slice(-500)
-    const last60 = last500.slice(-60)
-    const last15 = last60.slice(-15)
+  // Analyze markets
+  const marketPower = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeMarketPower(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeMarketPower(tickData, 60)
+  }, [tickData])
 
-    if (last60.length === 0) {
-      return {
-        type: "over-under",
-        signal: null,
-        confidence: 0,
-        entryPoint: null,
-        warning: null,
-        distribution: {},
-      }
-    }
+  const digitDistribution = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeDigitDistribution(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeDigitDistribution(tickData, 60)
+  }, [tickData])
 
-    const under60 = last60.filter(d => UNDER_RANGE.includes(d)).length
-    const over60 = last60.filter(d => OVER_RANGE.includes(d)).length
-    const underPercent = (under60 / last60.length) * 100
-    const overPercent = (over60 / last60.length) * 100
+  const overUnderSignal = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeOverUnder(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeOverUnder(tickData, 60)
+  }, [tickData])
 
-    const under15 = last15.filter(d => UNDER_RANGE.includes(d)).length
-    const over15 = last15.filter(d => OVER_RANGE.includes(d)).length
-    const underPercent15 = (under15 / last15.length) * 100
-    const overPercent15 = (over15 / last15.length) * 100
+  const evenOddSignal = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeEvenOdd(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeEvenOdd(tickData, 60)
+  }, [tickData])
 
-    let signal = null
-    let entryPoint = null
-    let warning = null
+  const matchesSignal = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeMatches(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeMatches(tickData, 60)
+  }, [tickData])
 
-    if (underPercent >= 55 && underPercent15 > underPercent) {
-      signal = "UNDER"
-      const strongestUnder = UNDER_RANGE.reduce((prev, curr) => 
-        last60.filter(d => d === curr).length > last60.filter(d => d === prev).length ? curr : prev
-      )
-      entryPoint = `Entry at digit ${strongestUnder}`
-      
-      // Check for power increase warning
-      if (overPercent15 > 30 && overPercent < 35) {
-        warning = `⚠️ Over digits appearing - use caution, skip 2-3 ticks if Over appears`
-      }
-    } else if (overPercent >= 55 && overPercent15 > overPercent) {
-      signal = "OVER"
-      const strongestOver = OVER_RANGE.reduce((prev, curr) => 
-        last60.filter(d => d === curr).length > last60.filter(d => d === prev).length ? curr : prev
-      )
-      entryPoint = `Entry at digit ${strongestOver}`
-      
-      if (underPercent15 > 30 && underPercent < 35) {
-        warning = `⚠️ Under digits appearing - use caution, skip 2-3 ticks if Under appears`
-      }
-    }
+  const differsSignal = useMemo(() => {
+    if (tickData.length < 60) return QuantumEdgeEngine.analyzeDigitDiffers(tickData, tickData.length)
+    return QuantumEdgeEngine.analyzeDigitDiffers(tickData, 60)
+  }, [tickData])
 
-    const distribution: Record<number, number> = {}
-    for (let i = 0; i < 10; i++) {
-      distribution[i] = last60.filter(d => d === i).length
-    }
+  // Last 7 digits
+  const lastSevenDigits = recentDigits.slice(-7).reverse()
 
-    return {
-      type: "over-under",
-      signal,
-      confidence: Math.max(underPercent, overPercent),
-      entryPoint,
-      warning,
-      distribution,
-    }
-  }
+  // Chart data for last 100 digits
+  const chartData = useMemo(() => {
+    return recentDigits.slice(-100).map((digit, idx) => ({
+      tick: idx + 1,
+      digit,
+    }))
+  }, [recentDigits])
 
-  const analyzeEvenOdd = (): StrategyAnalysis => {
-    const last60 = recentDigits.slice(-60)
-    if (last60.length === 0) {
-      return { type: "even-odd", signal: null, confidence: 0, entryPoint: null, warning: null, distribution: {} }
-    }
-
-    const even = last60.filter(d => d % 2 === 0).length
-    const odd = last60.filter(d => d % 2 === 1).length
-    const evenPercent = (even / last60.length) * 100
-    const oddPercent = (odd / last60.length) * 100
-    const deviation = Math.abs(evenPercent - oddPercent)
-
-    let signal = null
-    if (deviation >= 7) {
-      signal = evenPercent > oddPercent ? "EVEN" : "ODD"
-    }
-
-    return {
-      type: "even-odd",
-      signal,
-      confidence: deviation,
-      entryPoint: signal ? `Buy ${signal}` : null,
-      warning: deviation < 7 ? "Deviation < 7% - Wait for stronger signal" : null,
-      distribution: { even, odd, evenPercent, oddPercent },
-    }
-  }
-
-  const analyzeRiseFall = (): StrategyAnalysis => {
-    const prices = recentDigits.slice(-60)
-    if (prices.length < 2) {
-      return { type: "rise-fall", signal: null, confidence: 0, entryPoint: null, warning: null, distribution: {} }
-    }
-
-    let riseCount = 0
-    let fallCount = 0
-    for (let i = 1; i < prices.length; i++) {
-      if (prices[i] > prices[i - 1]) riseCount++
-      else fallCount++
-    }
-
-    const totalMoves = riseCount + fallCount
-    const risePercent = (riseCount / totalMoves) * 100
-    const fallPercent = (fallCount / totalMoves) * 100
-    const deviation = Math.abs(risePercent - fallPercent)
-
-    let signal = null
-    if (deviation >= 8) {
-      signal = risePercent > fallPercent ? "RISE" : "FALL"
-    }
-
-    return {
-      type: "rise-fall",
-      signal,
-      confidence: deviation,
-      entryPoint: signal ? `Trend: ${signal}` : null,
-      warning: deviation < 8 ? "Deviation < 8% - Trend not strong enough" : null,
-      distribution: { rise: riseCount, fall: fallCount },
-    }
-  }
-
-  const analyzeMatches = (): StrategyAnalysis => {
-    const last60 = recentDigits.slice(-60)
-    const distribution: Record<number, number> = {}
-
-    for (let i = 0; i < 10; i++) {
-      distribution[i] = last60.filter(d => d === i).length
-    }
-
-    const sorted = Object.entries(distribution).sort((a, b) => b[1] - a[1])
-    const hottest = sorted[0]
-    const hottestPercent = (hottest[1] / last60.length) * 100
-
-    return {
-      type: "matches",
-      signal: hottestPercent >= 15 ? `Digit ${hottest[0]}` : null,
-      confidence: hottestPercent,
-      entryPoint: hottestPercent >= 15 ? `Buy Digit Matches: ${hottest[0]}` : null,
-      warning: hottestPercent < 15 ? "No hot digit detected (< 15%)" : null,
-      distribution,
-    }
-  }
-
-  const analyzeDiffers = (): StrategyAnalysis => {
-    const last60 = recentDigits.slice(-60)
-    const distribution: Record<number, number> = {}
-
-    for (let i = 0; i < 10; i++) {
-      distribution[i] = last60.filter(d => d === i).length
-    }
-
-    const sorted = Object.entries(distribution).sort((a, b) => a[1] - b[1])
-    const coldest = sorted[0]
-    const coldestPercent = (coldest[1] / last60.length) * 100
-
-    return {
-      type: "differs",
-      signal: coldestPercent <= 5 ? `Digit ${coldest[0]}` : null,
-      confidence: 100 - coldestPercent,
-      entryPoint: coldestPercent <= 5 ? `Buy Digit Differs: ${coldest[0]}` : null,
-      warning: coldestPercent > 5 ? "No cold digit detected (> 5%)" : null,
-      distribution,
-    }
-  }
-
-  const getCurrentAnalysis = () => {
-    switch (activeStrategy) {
-      case "even-odd":
-        return analyzeEvenOdd()
-      case "rise-fall":
-        return analyzeRiseFall()
-      case "matches":
-        return analyzeMatches()
-      case "differs":
-        return analyzeDiffers()
+  // Get signal color
+  const getSignalColor = (signal: Signal) => {
+    switch (signal.type) {
+      case "OVER":
+        return "text-green-400"
+      case "UNDER":
+        return "text-blue-400"
+      case "EVEN":
+        return "text-yellow-400"
+      case "ODD":
+        return "text-purple-400"
+      case "MATCHES":
+        return "text-pink-400"
+      case "DIFFERS":
+        return "text-orange-400"
       default:
-        return analyzeOverUnder()
+        return "text-gray-400"
     }
   }
-
-  const handleTrade = () => {
-    const newTrade: TradeHistory = {
-      id: Date.now().toString(),
-      strategy: activeStrategy,
-      direction: tradeMarketSelection,
-      stake: tradeStake,
-      result: "pending",
-      profit: 0,
-      timestamp: Date.now(),
-    }
-    
-    setTradeHistory(prev => [newTrade, ...prev])
-    
-    // Simulate trade result after 2 seconds
-    setTimeout(() => {
-      const isWin = Math.random() > 0.5
-      setTradeHistory(prev =>
-        prev.map(t =>
-          t.id === newTrade.id
-            ? {
-                ...t,
-                result: isWin ? "win" : "loss",
-                profit: isWin ? tradeStake * 0.9 : -tradeStake,
-              }
-            : t
-        )
-      )
-      
-      if (!isWin) {
-        setConsecutiveLosses(prev => prev + 1)
-        if (prev => prev + 1 >= consecutiveLossesLimit) {
-          setRecoveryMode(true)
-        }
-      } else {
-        setConsecutiveLosses(0)
-      }
-    }, 2000)
-  }
-
-  const analysis = getCurrentAnalysis()
-  const lastDigits = recentDigits.slice(-50)
-  const totalStake = tradeHistory.reduce((sum, t) => sum + t.stake, 0)
-  const totalProfit = tradeHistory.reduce((sum, t) => sum + t.profit, 0)
-  const wins = tradeHistory.filter(t => t.result === "win").length
-  const losses = tradeHistory.filter(t => t.result === "loss").length
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTabs} onValueChange={setActiveTabs} className="w-full">
-        {/* Tab Navigation */}
-        <div className={`flex gap-2 mb-6 overflow-x-auto pb-2 ${theme === "dark" ? "bg-slate-900/30" : "bg-slate-100"} rounded-lg p-2`}>
-          {[
-            { value: "analysis", label: "Analysis" },
-            { value: "advanced-signals", label: "Advanced Signals" },
-            { value: "market-zones", label: "Market Zones" },
-            { value: "trading-console", label: "Trading Console" },
-            { value: "high-probability", label: "High-Probability" },
-            { value: "smart24", label: "Smart24" },
-          ].map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTabs(tab.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                activeTabs === tab.value
-                  ? theme === "dark"
-                    ? "bg-indigo-600 text-white shadow-lg"
-                    : "bg-indigo-500 text-white"
-                  : theme === "dark"
-                  ? "bg-white/5 text-gray-400 hover:bg-white/10"
-                  : "bg-white text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* Header */}
+      <div className={`rounded-2xl p-6 border backdrop-blur-md ${
+        theme === "dark"
+          ? "bg-gradient-to-br from-slate-900/80 to-slate-950/80 border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.1)]"
+          : "bg-white/80 border-gray-300"
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-cyan-400" />
+            <h1 className={`text-3xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Quantum Edge AI
+            </h1>
+          </div>
+          <Badge className={`text-lg px-4 py-2 ${theme === "dark" ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50" : "bg-cyan-100 text-cyan-700"}`}>
+            Live Trading Engine
+          </Badge>
         </div>
 
-        <TabsContent value="analysis" className="space-y-6">
-          {/* Strategy Selector */}
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              🎯 Trading Strategies
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {["over-under", "even-odd", "rise-fall", "differs", "matches", "recovery"].map((strat) => (
-                <button
-                  key={strat}
-                  onClick={() => setActiveStrategy(strat)}
-                  className={`p-3 rounded-lg font-bold text-sm transition-all ${
-                    activeStrategy === strat
-                      ? theme === "dark"
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
-                        : "bg-purple-500 text-white"
-                      : theme === "dark"
-                      ? "bg-white/5 text-gray-400 hover:bg-white/10"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {strat.replace("-", "/")}
-                </button>
-              ))}
-            </div>
+        <div className="flex items-center justify-between">
+          <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            Multi-window analysis • Real-time signals • AI-powered market scanning
+          </p>
+          <div className="flex items-center gap-3">
+            <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+              Auto Scanning
+            </span>
+            <Switch checked={autoScanning} onCheckedChange={setAutoScanning} />
+          </div>
+        </div>
+      </div>
 
-            {/* Market Toggle */}
-            <div className="mt-6 flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-              <span className="font-semibold text-white">Auto Markets</span>
-              <Switch checked={marketToggle} onCheckedChange={setMarketToggle} />
+      {/* Main Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className={`flex gap-2 overflow-x-auto pb-2 rounded-lg p-2 ${theme === "dark" ? "bg-slate-900/30" : "bg-slate-100"}`}>
+          {[
+            { id: "market-scanner", label: "Market Scanner", icon: Radar },
+            { id: "trading-console", label: "Trading Console", icon: Target },
+            { id: "recovery", label: "Recovery Engine", icon: Shield },
+            { id: "smart24", label: "24H Smart Trader", icon: Zap },
+            { id: "analytics", label: "Performance", icon: BarChart3 },
+          ].map(tab => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
+                  activeTab === tab.id
+                    ? theme === "dark"
+                      ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.5)]"
+                      : "bg-cyan-500 text-white"
+                    : theme === "dark"
+                    ? "bg-white/5 text-gray-400 hover:bg-white/10"
+                    : "bg-white text-gray-600"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Tab 1: Market Scanner */}
+        <TabsContent value="market-scanner" className="space-y-6">
+          {/* Market Power Cards */}
+          <div>
+            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Market Power Analysis
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Over/Under Card */}
+              <div className={`rounded-xl p-6 border backdrop-blur-md ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-emerald-900/40 to-emerald-950/40 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+                  : "bg-emerald-50 border-emerald-300"
+              }`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-emerald-300" : "text-emerald-700"}`}>
+                  Over/Under Signal
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-semibold text-emerald-400">Over (5-9)</span>
+                      <span className="text-sm font-bold text-emerald-300">{marketPower.bullishPercent.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-green-400"
+                        style={{ width: `${marketPower.bullishPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-semibold text-blue-400">Under (0-4)</span>
+                      <span className="text-sm font-bold text-blue-300">{marketPower.bearishPercent.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                        style={{ width: `${marketPower.bearishPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className={`mt-4 p-3 rounded-lg ${theme === "dark" ? "bg-white/5" : "bg-white/50"}`}>
+                  <p className={`text-sm font-semibold ${getSignalColor(overUnderSignal)}`}>
+                    {overUnderSignal.type === "NONE" ? "Neutral" : `${overUnderSignal.type} Signal`} ({overUnderSignal.strength})
+                  </p>
+                  <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Confidence: {overUnderSignal.confidence.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Even/Odd Card */}
+              <div className={`rounded-xl p-6 border backdrop-blur-md ${
+                theme === "dark"
+                  ? "bg-gradient-to-br from-yellow-900/40 to-yellow-950/40 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.15)]"
+                  : "bg-yellow-50 border-yellow-300"
+              }`}>
+                <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-yellow-300" : "text-yellow-700"}`}>
+                  Even/Odd Signal
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-semibold text-yellow-400">Even (0,2,4,6,8)</span>
+                      <span className="text-sm font-bold text-yellow-300">
+                        {tickData.filter(t => t.digit % 2 === 0).length / Math.max(tickData.length, 1) * 100 | 0}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-yellow-500 to-amber-400"
+                        style={{ width: `${tickData.filter(t => t.digit % 2 === 0).length / Math.max(tickData.length, 1) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-semibold text-purple-400">Odd (1,3,5,7,9)</span>
+                      <span className="text-sm font-bold text-purple-300">
+                        {tickData.filter(t => t.digit % 2 === 1).length / Math.max(tickData.length, 1) * 100 | 0}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-400"
+                        style={{ width: `${tickData.filter(t => t.digit % 2 === 1).length / Math.max(tickData.length, 1) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className={`mt-4 p-3 rounded-lg ${theme === "dark" ? "bg-white/5" : "bg-white/50"}`}>
+                  <p className={`text-sm font-semibold ${getSignalColor(evenOddSignal)}`}>
+                    {evenOddSignal.type === "NONE" ? "Neutral" : `${evenOddSignal.type} Signal`} ({evenOddSignal.strength})
+                  </p>
+                  <p className={`text-xs mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Confidence: {evenOddSignal.confidence.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Analysis Display */}
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <h3 className={`text-xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              📊 {activeStrategy.toUpperCase()} Analysis
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Signal Display */}
-              <div className="space-y-4">
-                <div className="p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-lg border border-blue-500/30">
-                  <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Signal Status
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-4 h-4 rounded-full animate-pulse ${
-                        analysis.signal
-                          ? "bg-green-500"
-                          : "bg-yellow-500"
-                      }`}
-                    />
-                    <span className={`text-2xl font-bold ${
-                      analysis.signal
-                        ? "text-green-400"
-                        : "text-yellow-400"
-                    }`}>
-                      {analysis.signal || "NEUTRAL"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Confidence: {analysis.confidence.toFixed(1)}%
-                  </p>
-                </div>
-
-                {analysis.entryPoint && (
-                  <div className="p-4 bg-green-500/20 rounded-lg border border-green-500/40">
-                    <p className="text-sm font-semibold text-green-300 mb-2">Entry Point</p>
-                    <p className="text-white font-bold">{analysis.entryPoint}</p>
-                  </div>
-                )}
-
-                {analysis.warning && (
-                  <div className="p-4 bg-red-500/20 rounded-lg border border-red-500/40 flex gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-                    <p className="text-sm text-red-300">{analysis.warning}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Distribution */}
-              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-                <p className={`text-sm font-semibold mb-4 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Last 60 Ticks Distribution
-                </p>
-                <div className="grid grid-cols-5 gap-2">
-                  {Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="text-center">
-                      <div className={`p-2 rounded-lg mb-1 ${
-                        i < 5 ? "bg-blue-500/20" : "bg-green-500/20"
-                      }`}>
-                        <p className="text-xs font-bold text-white">{i}</p>
-                      </div>
-                      <p className="text-xs font-semibold text-gray-300">
-                        {(analysis.distribution[i] || 0)}
-                      </p>
+          {/* Digit Distribution Cards */}
+          <div>
+            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Premium Digit Distribution
+            </h2>
+            <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+              {Array.from({ length: 10 }).map((_, digit) => {
+                const dist = digitDistribution[digit]
+                return (
+                  <div
+                    key={digit}
+                    className={`rounded-lg p-3 border backdrop-blur-sm text-center transition-all hover:scale-105 ${
+                      theme === "dark"
+                        ? "bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-600/40 hover:border-cyan-500/60"
+                        : "bg-white/60 border-gray-300 hover:border-cyan-400"
+                    }`}
+                  >
+                    <div className={`text-2xl font-bold mb-1 ${dist.heatScore > 70 ? "text-red-400" : dist.heatScore > 40 ? "text-yellow-400" : "text-blue-400"}`}>
+                      {digit}
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className={`text-xs font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      {dist.frequency}x
+                    </div>
+                    <div className={`text-xs mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      {dist.powerPercent.toFixed(0)}%
+                    </div>
+                    <div className="mt-2 h-1 bg-black/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                        style={{ width: `${dist.heatScore}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
+          </div>
 
-            {lastDigits.length > 0 && (
-              <div className="mt-6 space-y-6">
-                <div>
-                  <p className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Last 50 Digits Chart
-                  </p>
-                  <LastDigitsChart digits={lastDigits} />
+          {/* Last 7 Digits */}
+          <div>
+            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Last 7 Digits
+            </h2>
+            <div className="flex gap-2 justify-center">
+              {lastSevenDigits.map((digit, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-lg p-4 border backdrop-blur-sm text-center min-w-[80px] transition-all ${
+                    theme === "dark"
+                      ? "bg-gradient-to-br from-slate-800/60 to-slate-900/60 border-slate-600/40 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+                      : "bg-white/60 border-gray-300"
+                  }`}
+                >
+                  <div className="text-4xl font-bold text-cyan-400">{digit}</div>
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div>
-                  <p className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Digit Distribution Analysis
-                  </p>
-                  <DigitDistributionCards ticks={recentDigits} theme={theme} />
-                </div>
-              </div>
-            )}
+          {/* Last 100 Digits Chart */}
+          <div className={`rounded-xl p-6 border backdrop-blur-md ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/60 to-slate-950/60 border-slate-700/40"
+              : "bg-white/60 border-gray-300"
+          }`}>
+            <h2 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Last 100 Digits - Live Chart
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"} />
+                <XAxis dataKey="tick" stroke={theme === "dark" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)"} />
+                <YAxis stroke={theme === "dark" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)"} domain={[0, 9]} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: theme === "dark" ? "rgba(15,22,41,0.95)" : "rgba(255,255,255,0.95)",
+                    border: `1px solid ${theme === "dark" ? "rgba(34,211,238,0.5)" : "rgba(34,211,238,0.3)"}`,
+                    borderRadius: "8px",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="digit"
+                  stroke="url(#colorGradient)"
+                  dot={false}
+                  strokeWidth={2}
+                  isAnimationActive={true}
+                />
+                <defs>
+                  <linearGradient id="colorGradient" x1="0" y1="0" x2="100%" y2="0">
+                    <stop offset="0%" stopColor="#22d3ee" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#ec4899" />
+                  </linearGradient>
+                </defs>
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </TabsContent>
 
+        {/* Tab 2: Trading Console */}
         <TabsContent value="trading-console" className="space-y-6">
-          {/* Trading Console */}
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-purple-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
+          <div className={`rounded-2xl p-6 border backdrop-blur-md ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 to-slate-950/80 border-blue-500/20"
+              : "bg-white/80 border-gray-300"
+          }`}>
             <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              ⚙️ Trading Console
+              Trading Console
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-semibold text-gray-300 block mb-2">Market Selection</label>
+                  <label className={`text-sm font-semibold block mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Strategy
+                  </label>
                   <select
-                    value={tradeMarketSelection}
-                    onChange={(e) => setTradeMarketSelection(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                  >
-                    <option value="over">Over (5-9)</option>
-                    <option value="under">Under (0-4)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-gray-300 block mb-2">Contract Type</label>
-                  <select
-                    value={contractType}
-                    onChange={(e) => setContractType(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    value={selectedStrategy}
+                    onChange={(e) => setSelectedStrategy(e.target.value)}
+                    className={`w-full rounded-lg px-3 py-2 font-semibold transition-all ${
+                      theme === "dark"
+                        ? "bg-slate-800/50 border border-slate-700 text-white hover:border-cyan-500"
+                        : "bg-white border border-gray-300 text-gray-900"
+                    }`}
                   >
                     <option value="over-under">Over/Under</option>
                     <option value="even-odd">Even/Odd</option>
-                    <option value="digit">Digit Matches</option>
+                    <option value="matches">Matches</option>
+                    <option value="differs">Differs</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-sm font-semibold text-gray-300 block mb-2">Ticks ({ticks})</label>
+                  <label className={`text-sm font-semibold block mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Stake ($): {stake}
+                  </label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={stake}
+                    onChange={(e) => setStake(parseInt(e.target.value) || 1)}
+                    className={theme === "dark" ? "bg-slate-800 border-slate-700" : ""}
+                  />
+                </div>
+
+                <div>
+                  <label className={`text-sm font-semibold block mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Ticks: {ticks}
+                  </label>
                   <Input
                     type="number"
                     min="1"
                     max="20"
                     value={ticks}
                     onChange={(e) => setTicks(parseInt(e.target.value) || 1)}
-                    className="bg-white/5 border-white/10 text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-gray-300 block mb-2">Entry Point ({entryPoint})</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="9"
-                    value={entryPoint}
-                    onChange={(e) => setEntryPoint(parseInt(e.target.value) || 0)}
-                    className="bg-white/5 border-white/10 text-white"
+                    className={theme === "dark" ? "bg-slate-800 border-slate-700" : ""}
                   />
                 </div>
               </div>
 
               {/* Right Column */}
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-semibold text-gray-300 block mb-2">Stake (${tradeStake})</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={tradeStake}
-                    onChange={(e) => setTradeStake(parseInt(e.target.value) || 1)}
-                    className="bg-white/5 border-white/10 text-white"
-                  />
-                </div>
-
-                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-gray-300">Martingale</span>
-                    <Switch checked={martingale} onCheckedChange={setMartingale} />
+                <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-slate-800/30 border-slate-700" : "bg-gray-100 border-gray-300"}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      Martingale
+                    </span>
+                    <Switch checked={martingaleEnabled} onCheckedChange={setMartingaleEnabled} />
                   </div>
-                  {martingale && (
-                    <Input
-                      type="number"
-                      min="1"
-                      step="0.1"
-                      value={martingaleMultiplier}
-                      onChange={(e) => setMartingaleMultiplier(parseFloat(e.target.value) || 1)}
-                      className="bg-white/5 border-white/10 text-white text-sm"
-                      placeholder="Multiplier"
-                    />
+                  {martingaleEnabled && (
+                    <p className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                      Over 3 / Under 6: 1.5x | Over 2 / Under 7: 2.1x | Over 1 / Under 8: 3.1x
+                    </p>
                   )}
                 </div>
 
-                <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-slate-800/30 border-slate-700" : "bg-gray-100 border-gray-300"}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-300">Auto Trading</span>
+                    <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      Auto Trading
+                    </span>
                     <Switch checked={autoTrading} onCheckedChange={setAutoTrading} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
-              <Button
-                onClick={handleTrade}
-                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-6"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Execute Trade
-              </Button>
-              <Button variant="outline" className="flex-1 py-6 font-bold">
-                Clear
+            <Button className="w-full mt-6 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-bold py-6 text-lg">
+              <Zap className="w-5 h-5 mr-2" />
+              Execute Trade Now
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* Tab 3: Recovery Engine */}
+        <TabsContent value="recovery" className="space-y-6">
+          <div className={`rounded-2xl p-6 border backdrop-blur-md ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-orange-900/40 to-orange-950/40 border-orange-500/20"
+              : "bg-orange-50 border-orange-300"
+          }`}>
+            <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-orange-300" : "text-orange-700"}`}>
+              Recovery Engine
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className={`text-sm font-semibold block mb-3 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                  Consecutive Losses Before Recovery: {consecutiveLossesLimit}
+                </label>
+                <div className="flex gap-2">
+                  {[3, 4, 5].map(val => (
+                    <Button
+                      key={val}
+                      onClick={() => setConsecutiveLossesLimit(val)}
+                      className={`flex-1 ${
+                        consecutiveLossesLimit === val
+                          ? "bg-orange-600 text-white"
+                          : theme === "dark"
+                          ? "bg-slate-800 text-gray-300 hover:bg-slate-700"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {val} Losses
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-slate-800/30 border-slate-700" : "bg-gray-100 border-gray-300"}`}>
+                <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                  Recovery Priority:
+                </p>
+                <ol className={`text-sm space-y-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  <li>1. Over 0 - Highest Probability</li>
+                  <li>2. Even - Balanced Risk</li>
+                  <li>3. Under 9 - Alternative Entry</li>
+                </ol>
+              </div>
+
+              <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4">
+                <Shield className="w-5 h-5 mr-2" />
+                Activate Recovery Mode
               </Button>
             </div>
           </div>
         </TabsContent>
 
+        {/* Tab 4: 24H Smart Trader */}
         <TabsContent value="smart24" className="space-y-6">
-          {/* Smart 24hrs Trading */}
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              🤖 Smart 24hrs Automated Trading
-            </h2>
-
-            <div className="flex items-center gap-3 mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
+          <div className={`rounded-2xl p-6 border backdrop-blur-md ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-violet-900/40 to-violet-950/40 border-violet-500/20"
+              : "bg-violet-50 border-violet-300"
+          }`}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${theme === "dark" ? "text-violet-300" : "text-violet-700"}`}>
+                24H Smart Trading Mode
+              </h2>
               <Switch checked={smart24Enabled} onCheckedChange={setSmart24Enabled} />
-              <span className="text-sm font-semibold text-gray-300">Enable Smart24 Mode</span>
             </div>
 
             {smart24Enabled && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-semibold text-gray-300 block mb-2">Trading Hours (24)</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="24"
+                    <label className={`text-sm font-semibold block mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      Trading Duration
+                    </label>
+                    <select
                       value={tradingHours}
-                      onChange={(e) => setTradingHours(parseInt(e.target.value) || 24)}
-                      className="bg-white/5 border-white/10 text-white"
-                    />
+                      onChange={(e) => setTradingHours(parseInt(e.target.value))}
+                      className={`w-full rounded-lg px-3 py-2 ${
+                        theme === "dark"
+                          ? "bg-slate-800/50 border border-slate-700 text-white"
+                          : "bg-white border border-gray-300"
+                      }`}
+                    >
+                      <option value={1}>1 Hour</option>
+                      <option value={6}>6 Hours</option>
+                      <option value={12}>12 Hours</option>
+                      <option value={24}>24 Hours</option>
+                    </select>
                   </div>
+
                   <div>
-                    <label className="text-sm font-semibold text-gray-300 block mb-2">Account Balance %</label>
-                    <Input
-                      type="number"
-                      min="0.5"
-                      max="10"
-                      step="0.5"
-                      value={accountBalancePercent}
-                      onChange={(e) => setAccountBalancePercent(parseFloat(e.target.value) || 2)}
-                      className="bg-white/5 border-white/10 text-white"
-                    />
+                    <label className={`text-sm font-semibold block mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                      Risk Per Trade: {riskPercent}%
+                    </label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 5].map(val => (
+                        <Button
+                          key={val}
+                          onClick={() => setRiskPercent(val)}
+                          className={`flex-1 text-xs ${
+                            riskPercent === val
+                              ? "bg-violet-600 text-white"
+                              : theme === "dark"
+                              ? "bg-slate-800 text-gray-300"
+                              : "bg-gray-200 text-gray-700"
+                          }`}
+                        >
+                          {val}%
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-semibold text-gray-300 block mb-2">Stop Loss (Consecutive Losses)</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={stopLossConsecutive}
-                      onChange={(e) => setStopLossConsecutive(parseInt(e.target.value) || 5)}
-                      className="bg-white/5 border-white/10 text-white"
-                    />
-                  </div>
-                  <div className="p-4 bg-blue-500/20 rounded-lg border border-blue-500/30">
-                    <p className="text-sm font-semibold text-blue-300 mb-2">Trading Contracts</p>
-                    <p className="text-xs text-gray-300">Over 1, 2, 3 • Under 6, 7, 8</p>
-                  </div>
+                <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-slate-800/30 border-slate-700" : "bg-gray-100 border-gray-300"}`}>
+                  <p className={`text-sm font-semibold mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                    Recommended Stake Calculation:
+                  </p>
+                  <p className={`text-lg font-bold ${theme === "dark" ? "text-cyan-400" : "text-cyan-600"}`}>
+                    ${(accountBalance * riskPercent / 100).toFixed(2)} per trade
+                  </p>
+                  <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    Based on {riskPercent}% risk of ${accountBalance} account balance
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button className="bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white font-bold py-4">
+                    <Unlock className="w-4 h-4 mr-2" />
+                    Start 24H Trading
+                  </Button>
+                  <Button variant="outline" className="font-bold py-4">
+                    <Lock className="w-4 h-4 mr-2" />
+                    Stop Trading
+                  </Button>
                 </div>
               </div>
             )}
           </div>
         </TabsContent>
 
-        {/* Advanced Signals Tab */}
-        <TabsContent value="advanced-signals" className="space-y-6">
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-indigo-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              <Sparkles className="w-6 h-6 text-indigo-400" />
-              Advanced Signal Analysis
+        {/* Tab 5: Performance Analytics */}
+        <TabsContent value="analytics" className="space-y-6">
+          <div className={`rounded-2xl p-6 border backdrop-blur-md ${
+            theme === "dark"
+              ? "bg-gradient-to-br from-slate-900/80 to-slate-950/80 border-slate-700/40"
+              : "bg-white/80 border-gray-300"
+          }`}>
+            <h2 className={`text-2xl font-bold mb-6 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+              Performance Analytics
             </h2>
-            <AdvancedSignalsGenerator ticks={recentDigits} theme={theme} />
-          </div>
-        </TabsContent>
 
-        {/* Market Zones Tab */}
-        <TabsContent value="market-zones" className="space-y-6">
-          <div
-            className={`rounded-xl p-6 border ${
-              theme === "dark"
-                ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-emerald-500/20"
-                : "bg-white border-gray-200"
-            }`}
-          >
-            <h2 className={`text-2xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              🗺️ Market Zone Detection
-            </h2>
-            {marketAnalysis && (
-              <MarketZoneDisplay 
-                overPower={marketAnalysis.overPower}
-                underPower={marketAnalysis.underPower}
-                volatility={marketAnalysis.volatility}
-                trending={marketAnalysis.trendingMarket !== "neutral"}
-                theme={theme}
-              />
-            )}
-            {!marketAnalysis && (
-              <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-                Waiting for market data...
-              </p>
-            )}
-          </div>
-        </TabsContent>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[
+                { label: "Total Trades", value: trades.length, color: "blue" },
+                { label: "Win Rate", value: `${(trades.filter(t => t.result === "win").length / Math.max(trades.length, 1) * 100).toFixed(1)}%`, color: "green" },
+                { label: "Total Profit", value: `$${trades.reduce((sum, t) => sum + (t.profit || 0), 0).toFixed(2)}`, color: "emerald" },
+                { label: "Account Balance", value: `$${accountBalance}`, color: "cyan" },
+              ].map((stat, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-lg p-4 border backdrop-blur-sm ${
+                    theme === "dark"
+                      ? `bg-gradient-to-br from-${stat.color}-900/40 to-${stat.color}-950/40 border-${stat.color}-500/30`
+                      : `bg-${stat.color}-50 border-${stat.color}-300`
+                  }`}
+                >
+                  <p className={`text-xs font-semibold mb-1 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                    {stat.label}
+                  </p>
+                  <p className={`text-2xl font-bold ${theme === "dark" ? `text-${stat.color}-400` : `text-${stat.color}-600`}`}>
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+            </div>
 
-        {/* High-Probability Trader Tab */}
-        <TabsContent value="high-probability" className="space-y-6">
-          <HighProbabilityTrader 
-            ticks={recentDigits}
-            accountBalance={accountBalance}
-            theme={theme}
-          />
+            {/* Placeholder for charts */}
+            <p className={`text-sm text-center py-8 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+              Performance charts will display here once trades are executed
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
 
-      {/* Transaction History */}
-      {tradeHistory.length > 0 && (
-        <div
-          className={`rounded-xl p-6 border ${
-            theme === "dark"
-              ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-emerald-500/20"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <h3 className={`text-xl font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            📈 Transaction History
-          </h3>
-
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card className="p-3 bg-white/5 border-white/10">
-              <p className="text-xs text-gray-400 mb-1">Total Runs</p>
-              <p className="text-2xl font-bold text-white">{tradeHistory.length}</p>
-            </Card>
-            <Card className="p-3 bg-green-500/10 border-green-500/30">
-              <p className="text-xs text-green-300 mb-1">Wins</p>
-              <p className="text-2xl font-bold text-green-400">{wins}</p>
-            </Card>
-            <Card className="p-3 bg-red-500/10 border-red-500/30">
-              <p className="text-xs text-red-300 mb-1">Losses</p>
-              <p className="text-2xl font-bold text-red-400">{losses}</p>
-            </Card>
-            <Card className={`p-3 border ${
-              totalProfit >= 0
-                ? "bg-green-500/10 border-green-500/30"
-                : "bg-red-500/10 border-red-500/30"
-            }`}>
-              <p className={`text-xs mb-1 ${totalProfit >= 0 ? "text-green-300" : "text-red-300"}`}>Total Profit</p>
-              <p className={`text-2xl font-bold ${totalProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
-                {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
-              </p>
-            </Card>
-          </div>
-
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {tradeHistory.slice(0, 10).map((trade) => (
-              <div
-                key={trade.id}
-                className="p-3 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between text-sm"
-              >
-                <div className="flex items-center gap-2 flex-1">
-                  {trade.result === "win" ? (
-                    <TrendingUp className="w-4 h-4 text-green-400" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-red-400" />
-                  )}
-                  <span className="text-gray-400 flex-1">{trade.strategy} • ${trade.stake}</span>
-                </div>
-                <span className={`font-bold ${
-                  trade.result === "win" ? "text-green-400" : 
-                  trade.result === "loss" ? "text-red-400" : 
-                  "text-yellow-400"
-                }`}>
-                  {trade.result === "pending" ? "..." : trade.profit > 0 ? "+" : ""}{trade.profit.toFixed(2)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Info Card */}
-      <Card className={`p-4 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}>
-        <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} leading-relaxed`}>
-          <span className="font-bold">Money Maker Trading Engine:</span> Analyze 6 strategies simultaneously (Over/Under, Even/Odd, Rise/Fall, Differs, Matches, Recovery). Generate entry points with statistical confidence. Manage trades with martingale, auto-trading, and 24hr automated modes. Track all transactions with real-time profit/loss.
+      <Card className={`p-4 border ${theme === "dark" ? "bg-cyan-900/20 border-cyan-500/20" : "bg-cyan-50 border-cyan-300"}`}>
+        <p className={`text-sm ${theme === "dark" ? "text-cyan-300" : "text-cyan-700"}`}>
+          <span className="font-bold">Quantum Edge AI</span> - Advanced AI trading engine with multi-window analysis, statistical signal generation, and intelligent market scanning. Real-time risk management with recovery protocols and 24-hour automated trading capabilities.
         </p>
       </Card>
     </div>
