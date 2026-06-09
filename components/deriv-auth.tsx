@@ -8,6 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogIn, LogOut, UserPlus, ChevronDown, PlusCircle, ExternalLink, Globe, Sparkles } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 interface DerivAuthProps {
   theme?: "light" | "dark"
@@ -29,6 +38,8 @@ export function DerivAuth({ theme = "dark" }: DerivAuthProps) {
   const [activeTab, setActiveTab] = useState<"Real" | "Demo">("Real")
   const [profileImage, setProfileImage] = useState<string>("")
   const [customUsername, setCustomUsername] = useState<string>("")
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [apiToken, setApiToken] = useState("")
 
   useEffect(() => {
     if (accountType) setActiveTab(accountType)
@@ -142,7 +153,7 @@ export function DerivAuth({ theme = "dark" }: DerivAuthProps) {
           <Button onClick={createDerivAccount} size="sm" className="text-[10px] sm:text-xs h-9 px-4 rounded-xl font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all active:scale-95">
             <UserPlus className="h-4 w-4 mr-2" /> Sign Up
           </Button>
-          <Button onClick={requestLogin} size="sm" className="text-[10px] sm:text-xs h-9 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-95 border border-indigo-400/30">
+          <Button onClick={() => setShowLoginModal(true)} size="sm" className="text-[10px] sm:text-xs h-9 px-4 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-95 border border-indigo-400/30">
             <LogIn className="h-4 w-4 mr-2" /> Login
           </Button>
         </div>
@@ -316,6 +327,89 @@ export function DerivAuth({ theme = "dark" }: DerivAuthProps) {
           </Button>
         </div>
       )}
+
+      {/* Login Modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className={`${theme === "dark" ? "bg-slate-950 border-slate-800" : "bg-white"} max-w-md`}>
+          <DialogHeader>
+            <DialogTitle className={theme === "dark" ? "text-white" : "text-gray-900"}>Connect to Deriv</DialogTitle>
+            <DialogDescription className={theme === "dark" ? "text-slate-400" : "text-gray-600"}>
+              Choose how you want to login to your Deriv account
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-6">
+            {/* OAuth 2.0 Login */}
+            <Button
+              onClick={() => {
+                requestLogin()
+                setShowLoginModal(false)
+              }}
+              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-6 rounded-lg transition-all"
+            >
+              <Globe className="w-4 h-4 mr-2" />
+              Login with OAuth 2.0
+            </Button>
+
+            <div className={`relative flex items-center gap-3 ${theme === "dark" ? "text-slate-500" : "text-gray-400"}`}>
+              <div className={`flex-1 h-px ${theme === "dark" ? "bg-slate-700" : "bg-gray-300"}`}></div>
+              <span className="text-xs font-semibold">OR</span>
+              <div className={`flex-1 h-px ${theme === "dark" ? "bg-slate-700" : "bg-gray-300"}`}></div>
+            </div>
+
+            {/* API Token Login */}
+            <div className="space-y-3">
+              <Input
+                type="password"
+                placeholder="Enter your API Token"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                className={`${
+                  theme === "dark"
+                    ? "bg-slate-900 border-slate-700 text-white placeholder-slate-500"
+                    : "bg-gray-100 border-gray-300 text-gray-900"
+                } rounded-lg font-mono text-sm`}
+              />
+              <Button
+                onClick={() => {
+                  if (apiToken.trim()) {
+                    // Call API token login function
+                    console.log("[v0] API Token Login:", apiToken)
+                    setApiToken("")
+                    setShowLoginModal(false)
+                  }
+                }}
+                disabled={!apiToken.trim()}
+                className={`w-full py-6 rounded-lg font-bold transition-all ${
+                  apiToken.trim()
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : theme === "dark"
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Login with API Token
+              </Button>
+              <p className={`text-xs ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
+                Get your API token from <a href="https://app.deriv.com/settings/api-token" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 font-semibold">
+                  Deriv Settings
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowLoginModal(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
