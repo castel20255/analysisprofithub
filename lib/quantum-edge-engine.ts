@@ -310,13 +310,63 @@ export class QuantumEdgeEngine {
     }
   }
 
-  // Helper: calculate recommended skip ticks
+  // Helper: calculate recommended skip ticks based on pattern analysis
   private static calculateSkipTicks(dominance: number): number {
     if (dominance < 55) return 0
     if (dominance < 60) return 1
     if (dominance < 65) return 2
     if (dominance < 70) return 3
-    return 2 // Optimal for very strong signals
+    if (dominance < 75) return 4
+    return 5 // Maximum skip for extreme signals
+  }
+
+  // Recovery engine - analyze after consecutive losses
+  static analyzeRecoveryEntry(ticks: TickData[], consecutiveLosses: number, windowSize: number = 60): Signal {
+    const recentTicks = ticks.slice(-windowSize)
+    const OVER_RANGE = [5, 6, 7, 8, 9]
+    const UNDER_RANGE = [0, 1, 2, 3, 4]
+
+    const overCount = recentTicks.filter(t => OVER_RANGE.includes(t.digit)).length
+    const underCount = recentTicks.filter(t => UNDER_RANGE.includes(t.digit)).length
+    const total = overCount + underCount || 1
+
+    const overPercent = (overCount / total) * 100
+    const underPercent = (underCount / total) * 100
+
+    // Recovery priority: safest entry points (Over 0, Even, Under 9)
+    let recoverySignal: Signal["type"] = "OVER"
+    if (underPercent > overPercent) {
+      recoverySignal = "UNDER"
+    }
+
+    return {
+      type: recoverySignal,
+      strength: "STRONG",
+      confidence: Math.max(overPercent, underPercent),
+      dominance: Math.abs(overPercent - underPercent),
+      skipTicks: 2, // Always skip 2 ticks in recovery mode
+      reason: `Recovery mode after ${consecutiveLosses} losses - Safe entry priority`,
+      timestamp: Date.now(),
+    }
+  }
+
+  // Calculate optimal entry ticks to skip (detect pattern changes)
+  static calculateSmartSkipTicks(ticks: TickData[], entryDigit: number, maxSkip: number = 5): number {
+    if (ticks.length < 3) return 0
+    
+    const lastThreeTicks = ticks.slice(-3)
+    let skipCount = 0
+
+    // Analyze if entry digit continues or pattern changes
+    for (let i = lastThreeTicks.length - 1; i >= 0 && skipCount < maxSkip; i--) {
+      if (lastThreeTicks[i].digit !== entryDigit) {
+        skipCount++ // Skip ticks where digit doesn't match entry
+      } else {
+        break // Stop if we find the entry digit
+      }
+    }
+
+    return Math.min(skipCount, maxSkip)
   }
 
   // Helper: get recommendation text
