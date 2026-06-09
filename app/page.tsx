@@ -42,6 +42,7 @@ import { ToolsInfoTab } from "@/components/tabs/tools-info-tab"
 import SmartAdaptiveTradingTab from "@/components/tabs/smart-adaptive-trading"
 import { RiskDisclaimerModal } from "@/components/modals/risk-disclaimer-modal"
 import { MarketSelector } from "@/components/market-selector"
+import TradingEngineTab from "@/components/tabs/trading-engine-tab"
 
 import { FloatingAIScanner } from "@/components/floating-ai-scanner"
 import { LiveChat } from "@/components/live-chat"
@@ -337,60 +338,60 @@ export default function DerivAnalysisApp() {
                     }`}>
                     <div className="overflow-x-auto no-scrollbar flex">
                       <ResponsiveTabs theme={theme} value={activeTab} onValueChange={setActiveTab}>
-                        {[
-                          "smart-adaptive",
-                          "smart-analysis",
-                          "smartauto24",
-                          "autobot",
-                          "automated",
-                          "signals",
-                          "pro-signals",
-                          "super-signals",
-                          "advanced-signals",
-                          "even-odd",
-                          "over-under",
-                          "advanced-over-under",
-                          "matches",
-                          "differs",
-                          "ai-analysis",
-                          "tools-info",
-                        ].filter(tab => !siteConfig?.hiddenTabs?.includes(tab)).map((tab) => {
-                          const tabLabels: Record<string, string> = {
-                            "smart-adaptive": "Smart Adaptive",
-                            "smart-analysis": "Smart Analysis",
-                            "smartauto24": "SmartAuto24",
-                            "autobot": "Auto Bot",
-                            "automated": "Automated",
-                            "signals": "Signals",
-                            "pro-signals": "Pro Signals",
-                            "super-signals": "Super Signals",
-                            "advanced-signals": "Advanced Signals",
-                            "even-odd": "Even/Odd",
-                            "over-under": "Over/Under",
-                            "advanced-over-under": "Advanced Over/Under",
-                            "matches": "Matches",
-                            "differs": "Differs",
-                            "ai-analysis": "AI Analysis",
-                            "tools-info": "Tools Info"
-                          }
-                          const tabIcons: Record<string, any> = {
-                            "smart-adaptive": Sliders,
-                            "smart-analysis": LineChart,
-                            "smartauto24": Sparkles,
-                            "autobot": Cpu,
-                            "automated": Terminal,
-                            "signals": Radio,
-                            "pro-signals": TrendingUp,
-                            "super-signals": Flame,
-                            "advanced-signals": Activity,
-                            "even-odd": Hash,
-                            "over-under": ArrowUpDown,
-                            "advanced-over-under": Percent,
-                            "matches": CheckSquare,
-                            "differs": XCircle,
-                            "ai-analysis": BrainCircuit,
-                            "tools-info": HelpCircle
-                          }
+  {[
+  "trading-engine",
+  "smart-adaptive",
+  "smart-analysis",
+  "smartauto24",
+  "autobot",
+  "automated",
+  "signals",
+  "pro-signals",
+  "super-signals",
+  "money-maker",
+  "even-odd",
+  "matches",
+  "differs",
+  "ai-analysis",
+  "tools-info",
+  ].filter(tab => !siteConfig?.hiddenTabs?.includes(tab)).map((tab) => {
+  const tabLabels: Record<string, string> = {
+  "trading-engine": "Trading Engine",
+  "smart-adaptive": "Smart Adaptive",
+  "smart-analysis": "Smart Analysis",
+  "smartauto24": "SmartAuto24",
+  "autobot": "Auto Bot",
+  "automated": "Automated",
+  "signals": "Signals",
+  "pro-signals": "Pro Signals",
+  "super-signals": "Super Signals",
+  "money-maker": "Money Maker",
+  "even-odd": "Even/Odd",
+  "matches": "Matches",
+  "differs": "Differs",
+  "ai-analysis": "AI Analysis",
+  "tools-info": "Tools Info"
+  }
+  const tabIcons: Record<string, any> = {
+  "trading-engine": Cpu,
+  "smart-adaptive": Sliders,
+  "smart-analysis": LineChart,
+  "smartauto24": Sparkles,
+  "autobot": Cpu,
+  "automated": Terminal,
+  "signals": Radio,
+  "pro-signals": TrendingUp,
+  "super-signals": BrainCircuit,
+  "money-maker": Flame,
+  "even-odd": Percent,
+  "matches": CheckSquare,
+  "differs": Hash,
+  "ai-analysis": Sparkles,
+  "tools-info": HelpCircle,
+  "advanced-signals": Activity,
+  "over-under": ArrowUpDown,
+  "advanced-over-under": Percent
+  }
                           const IconComponent = tabIcons[tab]
                           return (
                           <TabsTrigger
@@ -830,9 +831,13 @@ export default function DerivAnalysisApp() {
                 />
               </TabsContent>
 
-              <TabsContent value="smart-adaptive" className="mt-0">
-                {analysis && <SmartAdaptiveTradingTab signals={signals} analysis={analysis} symbol={symbol} theme={theme} currentPrice={currentPrice} currentDigit={currentDigit} tickCount={tickCount} />}
-              </TabsContent>
+  <TabsContent value="trading-engine" className="mt-0">
+  <TradingEngineTab theme={theme} />
+  </TabsContent>
+
+  <TabsContent value="smart-adaptive" className="mt-0">
+  {analysis && <SmartAdaptiveTradingTab signals={signals} analysis={analysis} symbol={symbol} theme={theme} currentPrice={currentPrice} currentDigit={currentDigit} tickCount={tickCount} />}
+  </TabsContent>
 
               <TabsContent value="tools-info" className="mt-0">
                 <ToolsInfoTab theme={theme} connectionLogs={connectionLogs} />
