@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import type { DerivSymbol } from "@/hooks/use-deriv"
+import { AIFloatingScanner } from "@/components/ai-floating-scanner"
 
 interface MoneyMakerTabProps {
   recentDigits: number[]
@@ -41,6 +42,8 @@ export function MoneyMakerTab({
   const [useMartingale, setUseMartingale] = useState(false)
   const [autoTrading, setAutoTrading] = useState(false)
   const [transactionHistory, setTransactionHistory] = useState<any[]>([])
+  const [showScanner, setShowScanner] = useState(true)
+  const [scannerMinimized, setScannerMinimized] = useState(false)
 
   // Analyze last 500, 60, and 15 ticks
   const last500 = recentDigits.slice(-500)
@@ -238,6 +241,16 @@ export function MoneyMakerTab({
 
   return (
     <div className="space-y-6">
+      {/* AI Floating Scanner */}
+      {showScanner && (
+        <AIFloatingScanner
+          recentDigits={recentDigits}
+          theme={theme}
+          isMinimized={scannerMinimized}
+          onMinimize={() => setScannerMinimized(!scannerMinimized)}
+        />
+      )}
+
       {/* Header */}
       <div className="soft-card p-4 border-white/5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
