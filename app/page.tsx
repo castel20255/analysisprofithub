@@ -342,6 +342,7 @@ export default function DerivAnalysisApp() {
                           "smart-adaptive",
                           "smart-analysis",
                           "smartauto24",
+                          "money-maker",
                           "autobot",
                           "automated",
                           "signals",
@@ -361,6 +362,7 @@ export default function DerivAnalysisApp() {
                             "smart-adaptive": "Smart Adaptive",
                             "smart-analysis": "Smart Analysis",
                             "smartauto24": "SmartAuto24",
+                            "money-maker": "Money Maker",
                             "autobot": "Auto Bot",
                             "automated": "Automated",
                             "signals": "Signals",
@@ -380,6 +382,7 @@ export default function DerivAnalysisApp() {
                             "smart-adaptive": Sliders,
                             "smart-analysis": LineChart,
                             "smartauto24": Sparkles,
+                            "money-maker": TrendingUp,
                             "autobot": Cpu,
                             "automated": Terminal,
                             "signals": Radio,
@@ -785,6 +788,16 @@ export default function DerivAnalysisApp() {
                   availableSymbols={availableSymbols}
                   maxTicks={maxTicks}
                   onMaxTicksChange={changeMaxTicks}
+                />
+              </TabsContent>
+
+              <TabsContent value="money-maker" className="mt-0">
+                <MoneyMakerTab
+                  theme={theme}
+                  symbol={symbol}
+                  onSymbolChange={changeSymbol}
+                  availableSymbols={availableSymbols}
+                  recentDigits={recent100Digits}
                 />
               </TabsContent>
 

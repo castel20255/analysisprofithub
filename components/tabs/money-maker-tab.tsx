@@ -1,548 +1,746 @@
 "use client"
+
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { LastDigitsChart } from "@/components/charts/last-digits-chart"
-
-interface MoneyMakerAnalysis {
-  underPercent: number
-  overPercent: number
-  underIncreasing: boolean
-  overIncreasing: boolean
-  volatility: number
-  marketPower: number
-  strongestUnder: number | null
-  strongestOver: number | null
-  underPredictions: string[]
-  overPredictions: string[]
-}
-
-interface SignalState {
-  status: "NEUTRAL" | "WAIT" | "READY" | "RUN NOW" | "TRADING" | "EXIT"
-  color: string
-  type: "UNDER" | "OVER" | null
-  confidence: number
-  phase: 1 | 2
-  confirmedTicks: number
-  tradingTicksRemaining: number
-  accuracy: number
-  successfulTrades: number
-  totalTrades: number
-  entryPoint?: string
-}
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
+import type { DerivSymbol } from "@/hooks/use-deriv"
+import { AIFloatingScanner } from "@/components/ai-floating-scanner"
 
 interface MoneyMakerTabProps {
+  recentDigits: number[]
+  currentDigit: number | null
+  currentPrice: number | null
   theme?: "light" | "dark"
-  recentDigits?: number[]
   symbol?: string
-  availableSymbols?: any[]
+  availableSymbols?: DerivSymbol[]
   onSymbolChange?: (symbol: string) => void
+  tickCount?: number
 }
 
-export function MoneyMakerTab({ theme = "dark", recentDigits = [], symbol, availableSymbols, onSymbolChange }: MoneyMakerTabProps) {
-  const UNDER_RANGE = [0, 1, 2, 3, 4]
-  const OVER_RANGE = [5, 6, 7, 8, 9]
-  const PHASE1_TICKS = 15
-  const PHASE2_TICKS = 15
-  const TRADING_TICKS_MAX = 20
+export function MoneyMakerTab({
+  recentDigits,
+  currentDigit,
+  currentPrice,
+  theme = "dark",
+  symbol,
+  availableSymbols = [],
+  onSymbolChange,
+  tickCount,
+}: MoneyMakerTabProps) {
+  const [strategy, setStrategy] = useState<"over-under" | "even-odd" | "rise-fall" | "differs" | "matches" | "recovery">(
+    "over-under"
+  )
+  const [autoMarkets, setAutoMarkets] = useState(true)
+  const [selectedMarket, setSelectedMarket] = useState<"over" | "under" | "manual">("manual")
+  const [stake, setStake] = useState(10)
+  const [ticks, setTicks] = useState(5)
+  const [entryPoint, setEntryPoint] = useState(4)
+  const [useMartingale, setUseMartingale] = useState(false)
+  const [autoTrading, setAutoTrading] = useState(false)
+  const [transactionHistory, setTransactionHistory] = useState<any[]>([])
+  const [showScanner, setShowScanner] = useState(true)
+  const [scannerMinimized, setScannerMinimized] = useState(false)
 
-  const [analysis, setAnalysis] = useState<MoneyMakerAnalysis | null>(null)
-  const [signal, setSignal] = useState<SignalState>({
-    status: "NEUTRAL",
-    color: "gray",
-    type: null,
-    confidence: 0,
-    phase: 1,
-    confirmedTicks: 0,
-    tradingTicksRemaining: 0,
-    accuracy: 0,
-    successfulTrades: 0,
-    totalTrades: 0,
-  })
+  // Analyze last 500, 60, and 15 ticks
+  const last500 = recentDigits.slice(-500)
+  const last60 = recentDigits.slice(-60)
+  const last15 = recentDigits.slice(-15)
+  const last7 = recentDigits.slice(-7)
 
-  const lastDigits = recentDigits.slice(-50)
+  // Over/Under Analysis (0-4 vs 5-9)
+  const analyzeOverUnder = () => {
+    const under500 = last500.filter((d) => d <= 4).length
+    const over500 = last500.filter((d) => d >= 5).length
+    const under60 = last60.filter((d) => d <= 4).length
+    const over60 = last60.filter((d) => d >= 5).length
+    const under15 = last15.filter((d) => d <= 4).length
+    const over15 = last15.filter((d) => d >= 5).length
 
-  useEffect(() => {
-    if (signal.status === "EXIT" && signal.totalTrades > 0) {
-      const accuracy = (signal.successfulTrades / signal.totalTrades) * 100
-      setSignal((prev) => ({
-        ...prev,
-        accuracy,
-      }))
-    }
-  }, [signal.status, signal.successfulTrades, signal.totalTrades])
+    const underPercent500 = (under500 / Math.max(1, last500.length)) * 100
+    const overPercent500 = (over500 / Math.max(1, last500.length)) * 100
+    const underPercent60 = (under60 / Math.max(1, last60.length)) * 100
+    const overPercent60 = (over60 / Math.max(1, last60.length)) * 100
+    const underPercent15 = (under15 / Math.max(1, last15.length)) * 100
+    const overPercent15 = (over15 / Math.max(1, last15.length)) * 100
 
-  const analyzeMarket = () => {
-    if (recentDigits.length === 0) return
-
-    const last60 = recentDigits.slice(-60)
-    const last20 = recentDigits.slice(-20)
-    const last10 = recentDigits.slice(-10)
-
-    const underLast60 = last60.filter((d) => UNDER_RANGE.includes(d)).length
-    const overLast60 = last60.filter((d) => OVER_RANGE.includes(d)).length
-    const underLast20 = last20.filter((d) => UNDER_RANGE.includes(d)).length
-    const overLast20 = last20.filter((d) => OVER_RANGE.includes(d)).length
-    const underLast10 = last10.filter((d) => UNDER_RANGE.includes(d)).length
-    const overLast10 = last10.filter((d) => OVER_RANGE.includes(d)).length
-
-    const total60 = underLast60 + overLast60 || 1
-    const underPercent = (underLast60 / total60) * 100
-    const overPercent = (overLast60 / total60) * 100
-
-    const underPercent20 = last20.length > 0 ? (underLast20 / last20.length) * 100 : 0
-    const overPercent20 = last20.length > 0 ? (overLast20 / last20.length) * 100 : 0
-
-    const underPercent10 = last10.length > 0 ? (underLast10 / last10.length) * 100 : 0
-    const overPercent10 = last10.length > 0 ? (overLast10 / last10.length) * 100 : 0
-
-    const underIncreasing = underPercent10 > underPercent20
-    const overIncreasing = overPercent10 > overPercent20
-
-    const volatility = Math.abs(overPercent - underPercent)
-
-    let strongestUnder = null
-    let maxUnderCount = 0
-    UNDER_RANGE.forEach((digit) => {
-      const count = last60.filter((d) => d === digit).length
-      if (count > maxUnderCount) {
-        maxUnderCount = count
-        strongestUnder = digit
-      }
-    })
-
-    let strongestOver = null
-    let maxOverCount = 0
-    OVER_RANGE.forEach((digit) => {
-      const count = last60.filter((d) => d === digit).length
-      if (count > maxOverCount) {
-        maxOverCount = count
-        strongestOver = digit
-      }
-    })
-
-    const underPredictions: string[] = []
-    const overPredictions: string[] = []
-
-    if (strongestUnder !== null) {
-      if (strongestUnder >= 0 && strongestUnder <= 1) {
-        underPredictions.push("Under 6", "Under 7", "Under 8")
-      } else if (strongestUnder >= 2 && strongestUnder <= 3) {
-        underPredictions.push("Under 7", "Under 8", "Under 9")
-      } else if (strongestUnder >= 4) {
-        underPredictions.push("Under 9")
-      }
+    // Find highest digits
+    const getHighestDigit = (digits: number[], range: [number, number]) => {
+      const filtered = digits.filter((d) => d >= range[0] && d <= range[1])
+      if (filtered.length === 0) return null
+      const counts = new Map<number, number>()
+      filtered.forEach((d) => counts.set(d, (counts.get(d) || 0) + 1))
+      return Array.from(counts.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0]
     }
 
-    if (strongestOver !== null) {
-      if (strongestOver >= 3 && strongestOver <= 5) {
-        overPredictions.push("Over 1", "Over 2", "Over 3")
-      } else if (strongestOver >= 6 && strongestOver <= 8) {
-        overPredictions.push("Over 2", "Over 3")
-      } else if (strongestOver >= 9) {
-        overPredictions.push("Over 3")
+    const highestUnder = getHighestDigit(last60, [0, 4])
+    const highestOver = getHighestDigit(last60, [5, 9])
+
+    // Signal determination
+    let signal = "NEUTRAL"
+    let signalColor = "gray"
+    let signalMessage = ""
+    let description = ""
+    let skipTicks = 0
+
+    const maxPower = Math.max(overPercent60, underPercent60)
+    const dominant = overPercent60 > underPercent60 ? "OVER" : "UNDER"
+    const dominantPercent = Math.max(overPercent60, underPercent60)
+
+    if (dominantPercent >= 55 && ((dominant === "OVER" && overPercent15 > overPercent60) || (dominant === "UNDER" && underPercent15 > underPercent60))) {
+      if (dominantPercent >= 60) {
+        signal = "TRADE NOW"
+        signalColor = "green"
+        signalMessage = `${dominant} at ${dominantPercent.toFixed(1)}% - STRONG SIGNAL`
+        description = `Market strongly favors ${dominant}. Entry point: ${dominant === "OVER" ? highestOver : highestUnder}`
+      } else {
+        signal = "WAIT"
+        signalColor = "blue"
+        signalMessage = `${dominant} at ${dominantPercent.toFixed(1)}% - BUILDING POWER`
+        description = `${dominant} power is building. Wait for confirmation at 60%+`
       }
+    } else {
+      signal = "NEUTRAL"
+      signalColor = "gray"
+      signalMessage = "Analyzing market patterns"
+      description = "Waiting for clear dominance with increasing power"
     }
 
-    const marketPower = Math.max(underPercent, overPercent)
-
-    setAnalysis({
-      underPercent,
-      overPercent,
-      underIncreasing,
-      overIncreasing,
-      volatility,
-      marketPower,
-      strongestUnder,
-      strongestOver,
-      underPredictions,
-      overPredictions,
-    })
-
-    determineSignal(underPercent, overPercent, underIncreasing, overIncreasing, volatility, marketPower)
-  }
-
-  const determineSignal = (
-    underPercent: number,
-    overPercent: number,
-    underIncreasing: boolean,
-    overIncreasing: boolean,
-    volatility: number,
-    marketPower: number,
-  ) => {
-    const isVolatile = volatility > 20
-
-    if (signal.phase === 1) {
-      if (
-        (overPercent >= 50 && overIncreasing && !isVolatile) ||
-        (underPercent >= 50 && underIncreasing && !isVolatile)
-      ) {
-        setSignal((prev) => ({
-          ...prev,
-          status: "WAIT",
-          color: "yellow",
-          phase: 1,
-          confirmedTicks: 0,
-        }))
-
-        return
-      }
+    // Power warning
+    let warning = ""
+    if (dominant === "OVER" && underPercent15 > underPercent60 && underPercent15 > 30) {
+      warning = `⚠️ Under digits increasing (${underPercent15.toFixed(0)}%) - Consider skip 2-3 ticks`
+    } else if (dominant === "UNDER" && overPercent15 > overPercent60 && overPercent15 > 30) {
+      warning = `⚠️ Over digits increasing (${overPercent15.toFixed(0)}%) - Consider skip 2-3 ticks`
     }
 
-    if (signal.phase === 2 && signal.status === "WAIT") {
-      setSignal((prev) => ({
-        ...prev,
-        confirmedTicks: prev.confirmedTicks + 1,
-      }))
-
-      if (signal.confirmedTicks >= 15) {
-        if (
-          (overPercent >= 56 && overIncreasing && !isVolatile) ||
-          (underPercent >= 56 && underIncreasing && !isVolatile)
-        ) {
-          const signalType = overPercent >= 56 ? "OVER" : "UNDER"
-          const entryDigit = signalType === "OVER" ? analysis?.strongestOver : analysis?.strongestUnder
-          setSignal((prev) => ({
-            ...prev,
-            status: "RUN NOW",
-            color: "orange",
-            type: signalType,
-            confidence: Math.min(marketPower, 99),
-            phase: 2,
-            confirmedTicks: 15,
-            tradingTicksRemaining: TRADING_TICKS_MAX,
-            entryPoint: `Enter ${signalType} position targeting digit ${entryDigit}`,
-          }))
-
-          return
-        } else if (overPercent >= 56 || underPercent >= 56) {
-          setSignal((prev) => ({
-            ...prev,
-            status: "READY",
-            color: "cyan",
-          }))
-          return
-        }
-      }
-    }
-
-    if (signal.status === "TRADING") {
-      setSignal((prev) => ({
-        ...prev,
-        tradingTicksRemaining: Math.max(0, prev.tradingTicksRemaining - 1),
-      }))
-
-      if (signal.tradingTicksRemaining <= 0 || (!underIncreasing && !overIncreasing)) {
-        setSignal((prev) => ({
-          ...prev,
-          status: "EXIT",
-          color: "red",
-          type: null,
-          confidence: 0,
-          phase: 1,
-          confirmedTicks: 0,
-          tradingTicksRemaining: 0,
-        }))
-      }
+    return {
+      signal,
+      signalColor,
+      signalMessage,
+      description,
+      warning,
+      underPercent60,
+      overPercent60,
+      underPercent15,
+      overPercent15,
+      highestUnder,
+      highestOver,
+      skipTicks,
     }
   }
 
-  useEffect(() => {
-    analyzeMarket()
-  }, [recentDigits])
+  // Even/Odd Analysis
+  const analyzeEvenOdd = () => {
+    const even60 = last60.filter((d) => d % 2 === 0).length
+    const odd60 = last60.filter((d) => d % 2 === 1).length
+    const evenPercent = (even60 / Math.max(1, last60.length)) * 100
+    const oddPercent = (odd60 / Math.max(1, last60.length)) * 100
+    const deviation = Math.abs(evenPercent - oddPercent)
 
+    let signal = "NEUTRAL"
+    let signalColor = "gray"
+    let signalMessage = ""
+    let description = ""
+
+    if (deviation >= 7) {
+      signal = "TRADE NOW"
+      signalColor = "green"
+      const type = evenPercent > oddPercent ? "EVEN" : "ODD"
+      signalMessage = `${type} at ${Math.max(evenPercent, oddPercent).toFixed(1)}% - SIGNAL`
+      description = `${type} dominance detected with ${deviation.toFixed(1)}% deviation`
+    } else if (deviation >= 5) {
+      signal = "WAIT"
+      signalColor = "blue"
+      signalMessage = "Building deviation"
+      description = `Deviation at ${deviation.toFixed(1)}%. Wait for 7%+ deviation`
+    }
+
+    return { signal, signalColor, signalMessage, description, evenPercent, oddPercent, deviation }
+  }
+
+  // Rise/Fall Analysis
+  const analyzeRiseFall = () => {
+    let riseCount = 0,
+      fallCount = 0
+    for (let i = 1; i < last60.length; i++) {
+      if (last60[i] > last60[i - 1]) riseCount++
+      else if (last60[i] < last60[i - 1]) fallCount++
+    }
+    const risePercent = (riseCount / Math.max(1, last60.length - 1)) * 100
+    const fallPercent = (fallCount / Math.max(1, last60.length - 1)) * 100
+    const deviation = Math.abs(risePercent - fallPercent)
+
+    let signal = "NEUTRAL"
+    let signalColor = "gray"
+    let signalMessage = ""
+    let description = ""
+
+    if (deviation >= 8) {
+      signal = "TRADE NOW"
+      signalColor = "green"
+      const trend = risePercent > fallPercent ? "RISE" : "FALL"
+      signalMessage = `${trend} at ${Math.max(risePercent, fallPercent).toFixed(1)}% - SIGNAL`
+      description = `Strong ${trend} trend with ${deviation.toFixed(1)}% directional deviation`
+    } else if (deviation >= 6) {
+      signal = "WAIT"
+      signalColor = "blue"
+      signalMessage = "Trend building"
+      description = `Directional bias emerging. Monitor for confirmation`
+    }
+
+    return { signal, signalColor, signalMessage, description, risePercent, fallPercent, deviation }
+  }
+
+  // Digit Distribution
+  const digitCounts: Record<number, number> = {}
+  for (let i = 0; i < 10; i++) {
+    digitCounts[i] = last60.filter((d) => d === i).length
+  }
+
+  // Get analysis based on strategy
+  const getAnalysis = () => {
+    switch (strategy) {
+      case "even-odd":
+        return analyzeEvenOdd()
+      case "rise-fall":
+        return analyzeRiseFall()
+      default:
+        return analyzeOverUnder()
+    }
+  }
+
+  const analysis = getAnalysis()
+
+  // Chart data
+  const chartData = recentDigits.slice(-100).map((digit, idx) => ({
+    tick: idx,
+    digit,
+  }))
+
+  // Handle trade
   const handleTrade = () => {
-    if (signal.status === "RUN NOW") {
-      setSignal((prev) => ({
-        ...prev,
-        status: "TRADING",
-        totalTrades: prev.totalTrades + 1,
-      }))
+    const newTrade = {
+      id: Date.now(),
+      strategy,
+      market: selectedMarket,
+      stake,
+      ticks,
+      result: Math.random() > 0.5 ? "win" : "loss",
+      profit: Math.random() > 0.5 ? stake * 0.9 : -stake,
     }
+    setTransactionHistory((prev) => [newTrade, ...prev])
   }
 
-  const handleExit = () => {
-    setSignal((prev) => ({
-      ...prev,
-      status: "EXIT",
-      color: "red",
-      type: null,
-      confidence: 0,
-      phase: 1,
-      confirmedTicks: 0,
-      tradingTicksRemaining: 0,
-    }))
-  }
-
-  if (!analysis) {
-    return (
-      <div className="text-center py-16">
-        <p className={theme === "dark" ? "text-gray-400" : "text-gray-600"}>Loading advanced analysis...</p>
-      </div>
-    )
-  }
+  const wins = transactionHistory.filter((t) => t.result === "win").length
+  const losses = transactionHistory.filter((t) => t.result === "loss").length
+  const totalProfit = transactionHistory.reduce((sum, t) => sum + t.profit, 0)
 
   return (
     <div className="space-y-6">
-      <div
-        className={`rounded-xl p-4 sm:p-6 border ${theme === "dark"
-          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-purple-500/20"
-          : "bg-white border-gray-200"
-          }`}
-      >
-        <h2
-          className={`text-2xl sm:text-3xl font-bold text-center mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}
-        >
-          💰 Advanced Over/Under
-        </h2>
+      {/* AI Floating Scanner */}
+      {showScanner && (
+        <AIFloatingScanner
+          recentDigits={recentDigits}
+          theme={theme}
+          isMinimized={scannerMinimized}
+          onMinimize={() => setScannerMinimized(!scannerMinimized)}
+        />
+      )}
 
-        <div className="flex justify-center mb-6">
-          <Badge
-            className={`text-lg px-6 py-3 font-bold animate-pulse ${signal.status === "RUN NOW"
-              ? "bg-orange-500/30 text-orange-300 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.6)]"
-              : signal.status === "READY"
-                ? "bg-cyan-500/30 text-cyan-300 border-cyan-500/50"
-                : signal.status === "WAIT"
-                  ? "bg-yellow-500/30 text-yellow-300 border-yellow-500/50"
-                  : signal.status === "TRADING"
-                    ? "bg-green-500/30 text-green-300 border-green-500/50"
-                    : signal.status === "EXIT"
-                      ? "bg-red-500/30 text-red-300 border-red-500/50"
-                      : "bg-gray-500/30 text-gray-300 border-gray-500/50"
+      {/* Header */}
+      <div className="soft-card p-4 border-white/5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+            Current Digit:
+          </span>
+          {currentDigit !== null ? (
+            <span
+              className={`text-2xl font-bold animate-pulse ${
+                theme === "dark"
+                  ? "bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent"
+                  : "text-orange-600"
               }`}
+            >
+              {currentDigit}
+            </span>
+          ) : (
+            <span className={`text-2xl font-bold ${theme === "dark" ? "text-gray-600" : "text-gray-400"}`}>-</span>
+          )}
+        </div>
+        <div className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+          Price: <span className="font-mono">{currentPrice?.toFixed(5) || "---"}</span>
+        </div>
+      </div>
+
+      {/* Strategy Selector */}
+      <div className="soft-card p-6 border-white/5">
+        <h3 className="text-sm font-bold mb-4 uppercase tracking-widest text-gray-400">Select Strategy</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
+          {["over-under", "even-odd", "rise-fall", "differs", "matches", "recovery"].map((s) => (
+            <Button
+              key={s}
+              onClick={() => setStrategy(s as any)}
+              variant={strategy === s ? "default" : "outline"}
+              className={`text-xs uppercase font-bold ${
+                strategy === s
+                  ? "bg-gradient-to-r from-purple-600 to-indigo-600"
+                  : theme === "dark"
+                  ? "border-gray-600 text-gray-300 hover:bg-gray-800"
+                  : "border-gray-300 text-gray-700"
+              }`}
+            >
+              {s.replace("-", "/")}
+            </Button>
+          ))}
+        </div>
+
+        {/* Auto Markets Toggle */}
+        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
+          <Switch checked={autoMarkets} onCheckedChange={setAutoMarkets} />
+          <span className={`text-sm font-semibold ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+            Auto Markets Analysis
+          </span>
+        </div>
+      </div>
+
+      {/* Signal Display */}
+      <div className="soft-card p-8 border-white/5">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-black uppercase tracking-[0.2em] mb-4 text-white">Trading Signal</h2>
+          <Badge
+            className={`text-lg px-4 py-2 ${
+              analysis.signal === "TRADE NOW"
+                ? theme === "dark"
+                  ? "bg-green-500/20 text-green-400 border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                  : "bg-green-100 text-green-700"
+                : analysis.signal === "WAIT"
+                ? theme === "dark"
+                  ? "bg-blue-500/20 text-blue-300 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                  : "bg-blue-100 text-blue-700"
+                : theme === "dark"
+                ? "bg-gray-500/20 text-gray-400"
+                : "bg-gray-100 text-gray-600"
+            }`}
           >
-            {signal.status}
-            {signal.status === "RUN NOW" && ` - Confidence: ${signal.confidence.toFixed(0)}%`}
-            {signal.status === "TRADING" && ` - ${signal.tradingTicksRemaining} ticks remaining`}
+            {analysis.signal}
           </Badge>
         </div>
 
-        {signal.status === "RUN NOW" && signal.entryPoint && (
-          <div
-            className={`rounded-lg p-4 mb-6 border animate-pulse ${theme === "dark"
-              ? "bg-orange-500/20 border-orange-500/40 shadow-[0_0_20px_rgba(249,115,22,0.4)]"
-              : "bg-orange-100 border-orange-300"
-              }`}
-          >
-            <h3 className={`text-lg font-bold mb-2 ${theme === "dark" ? "text-orange-300" : "text-orange-800"}`}>
-              📍 Entry Point
-            </h3>
-            <p className={`text-base font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              {signal.entryPoint}
-            </p>
-          </div>
-        )}
-
-        {signal.status === "EXIT" && signal.totalTrades > 0 && (
-          <div
-            className={`rounded-lg p-4 mb-6 border ${signal.accuracy >= 70
-              ? theme === "dark"
-                ? "bg-green-500/20 border-green-500/40"
-                : "bg-green-100 border-green-300"
-              : theme === "dark"
-                ? "bg-red-500/20 border-red-500/40"
-                : "bg-red-100 border-red-300"
-              }`}
-          >
-            <h3 className={`text-lg font-bold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Signal Accuracy Report
-            </h3>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className={`text-2xl font-bold ${theme === "dark" ? "text-green-400" : "text-green-600"}`}>
-                  {signal.accuracy.toFixed(1)}%
-                </div>
-                <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Accuracy</div>
-              </div>
-              <div>
-                <div className={`text-2xl font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
-                  {signal.successfulTrades}
-                </div>
-                <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Successful</div>
-              </div>
-              <div>
-                <div className={`text-2xl font-bold ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`}>
-                  {signal.totalTrades}
-                </div>
-                <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>Total Trades</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {lastDigits.length > 0 && (
         <div
-          className={`rounded-xl p-6 border ${theme === "dark"
-            ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.2)]"
-            : "bg-white border-gray-200 shadow-lg"
-            }`}
-        >
-          <h3 className={`text-lg font-bold mb-4 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Last Digits Chart
-          </h3>
-          <LastDigitsChart digits={lastDigits} />
-        </div>
-      )}
-
-      <div
-        className={`rounded-xl p-4 sm:p-6 border grid grid-cols-1 md:grid-cols-2 gap-6 ${theme === "dark"
-          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-blue-500/20"
-          : "bg-white border-gray-200"
+          className={`rounded-lg p-4 mb-6 ${
+            analysis.signal === "TRADE NOW"
+              ? theme === "dark"
+                ? "bg-green-500/10 border border-green-500/30"
+                : "bg-green-50 border border-green-200"
+              : analysis.signal === "WAIT"
+              ? theme === "dark"
+                ? "bg-blue-500/10 border border-blue-500/30"
+                : "bg-blue-50 border border-blue-200"
+              : theme === "dark"
+              ? "bg-gray-500/10 border border-gray-500/30"
+              : "bg-gray-50 border border-gray-200"
           }`}
-      >
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="text-5xl sm:text-6xl font-bold text-blue-400 mb-2">{analysis.underPercent.toFixed(1)}%</div>
-            <div className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Under (0-4) {analysis.underIncreasing ? "↗" : "↘"}
-            </div>
-            <div className={`text-sm mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Strongest Digit: {analysis.strongestUnder}
-            </div>
-          </div>
-          <div className="h-8 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300"
-              style={{ width: `${analysis.underPercent}%` }}
-            />
-          </div>
-
-          {analysis.underPredictions.length > 0 && (
-            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
-              <p className="text-xs font-semibold text-blue-300 mb-2">Predicted Under Contracts:</p>
-              <div className="flex flex-wrap gap-2">
-                {analysis.underPredictions.map((pred) => (
-                  <Badge key={pred} className="bg-blue-500/30 text-blue-300 border-blue-500/50">
-                    {pred}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+        >
+          <h3 className="text-xs font-black uppercase tracking-widest mb-2 text-white/70">Signal Analysis</h3>
+          <p className={`text-sm font-medium ${theme === "dark" ? "text-gray-300" : "text-gray-800"}`}>
+            {analysis.signalMessage}
+          </p>
+          <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+            {analysis.description}
+          </p>
+          {analysis.warning && (
+            <p className={`text-xs mt-2 font-semibold ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>
+              {analysis.warning}
+            </p>
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="text-5xl sm:text-6xl font-bold text-green-400 mb-2">{analysis.overPercent.toFixed(1)}%</div>
-            <div className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Over (5-9) {analysis.overIncreasing ? "↗" : "↘"}
-            </div>
-            <div className={`text-sm mt-2 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Strongest Digit: {analysis.strongestOver}
-            </div>
-          </div>
-          <div className="h-8 bg-gray-800 rounded-full overflow-hidden">
+        {/* Strategy Specific Analysis */}
+        {strategy === "over-under" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div
-              className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-300"
-              style={{ width: `${analysis.overPercent}%` }}
-            />
-          </div>
-
-          {analysis.overPredictions.length > 0 && (
-            <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-              <p className="text-xs font-semibold text-green-300 mb-2">Predicted Over Contracts:</p>
-              <div className="flex flex-wrap gap-2">
-                {analysis.overPredictions.map((pred) => (
-                  <Badge key={pred} className="bg-green-500/30 text-green-300 border-green-500/50">
-                    {pred}
-                  </Badge>
-                ))}
+              className={`rounded-lg p-6 border ${
+                theme === "dark"
+                  ? "bg-blue-500/10 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                  : "bg-blue-50 border-blue-200"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`text-4xl font-bold ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`}>
+                  {analysis.underPercent60?.toFixed(1)}%
+                </div>
+                <div className={`text-2xl ${analysis.underPercent15 > analysis.underPercent60 ? "text-green-500" : "text-red-500"}`}>
+                  {analysis.underPercent15 > analysis.underPercent60 ? "📈" : "📉"}
+                </div>
+              </div>
+              <div className={`text-sm mb-2 font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                UNDER (0-4)
+              </div>
+              <div className={`text-xs mb-3 ${theme === "dark" ? "text-gray-500" : "text-gray-600"}`}>
+                Highest: {analysis.highestUnder ?? "N/A"}
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all"
+                  style={{ width: `${Math.min(analysis.underPercent60 || 0, 100)}%` }}
+                />
               </div>
             </div>
-          )}
+
+            <div
+              className={`rounded-lg p-6 border ${
+                theme === "dark"
+                  ? "bg-orange-500/10 border-orange-500/30 shadow-[0_0_15px_rgba(234,88,12,0.2)]"
+                  : "bg-orange-50 border-orange-200"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`text-4xl font-bold ${theme === "dark" ? "text-orange-400" : "text-orange-600"}`}>
+                  {analysis.overPercent60?.toFixed(1)}%
+                </div>
+                <div className={`text-2xl ${analysis.overPercent15 > analysis.overPercent60 ? "text-green-500" : "text-red-500"}`}>
+                  {analysis.overPercent15 > analysis.overPercent60 ? "📈" : "📉"}
+                </div>
+              </div>
+              <div className={`text-sm mb-2 font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                OVER (5-9)
+              </div>
+              <div className={`text-xs mb-3 ${theme === "dark" ? "text-gray-500" : "text-gray-600"}`}>
+                Highest: {analysis.highestOver ?? "N/A"}
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all"
+                  style={{ width: `${Math.min(analysis.overPercent60 || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {strategy === "even-odd" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div
+              className={`rounded-lg p-6 border ${
+                theme === "dark" ? "bg-green-500/10 border-green-500/30" : "bg-green-50 border-green-200"
+              }`}
+            >
+              <div className={`text-4xl font-bold mb-2 ${theme === "dark" ? "text-green-400" : "text-green-600"}`}>
+                {analysis.evenPercent?.toFixed(1)}%
+              </div>
+              <div className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                EVEN
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-green-500 transition-all"
+                  style={{ width: `${Math.min(analysis.evenPercent || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div
+              className={`rounded-lg p-6 border ${
+                theme === "dark" ? "bg-pink-500/10 border-pink-500/30" : "bg-pink-50 border-pink-200"
+              }`}
+            >
+              <div className={`text-4xl font-bold mb-2 ${theme === "dark" ? "text-pink-400" : "text-pink-600"}`}>
+                {analysis.oddPercent?.toFixed(1)}%
+              </div>
+              <div className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                ODD
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-pink-500 transition-all"
+                  style={{ width: `${Math.min(analysis.oddPercent || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {strategy === "rise-fall" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div
+              className={`rounded-lg p-6 border ${
+                theme === "dark" ? "bg-purple-500/10 border-purple-500/30" : "bg-purple-50 border-purple-200"
+              }`}
+            >
+              <div className={`text-4xl font-bold mb-2 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`}>
+                {analysis.risePercent?.toFixed(1)}%
+              </div>
+              <div className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                RISE
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-purple-500 transition-all"
+                  style={{ width: `${Math.min(analysis.risePercent || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div
+              className={`rounded-lg p-6 border ${
+                theme === "dark" ? "bg-red-500/10 border-red-500/30" : "bg-red-50 border-red-200"
+              }`}
+            >
+              <div className={`text-4xl font-bold mb-2 ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>
+                {analysis.fallPercent?.toFixed(1)}%
+              </div>
+              <div className={`text-sm font-semibold mb-3 ${theme === "dark" ? "text-gray-400" : "text-gray-700"}`}>
+                FALL
+              </div>
+              <div className={`w-full rounded-full h-4 ${theme === "dark" ? "bg-gray-700" : "bg-gray-200"}`}>
+                <div
+                  className="h-4 rounded-full bg-red-500 transition-all"
+                  style={{ width: `${Math.min(analysis.fallPercent || 0, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Last 7 Digits */}
+        <div className="mb-8">
+          <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-white/70">Last 7 Digits</h3>
+          <div className="grid grid-cols-7 gap-2">
+            {last7.map((digit, idx) => (
+              <div
+                key={idx}
+                className={`p-3 rounded-lg text-center font-bold text-lg ${
+                  digit <= 4
+                    ? theme === "dark"
+                      ? "bg-blue-500/30 border border-blue-500/50 text-blue-300"
+                      : "bg-blue-100 text-blue-600"
+                    : theme === "dark"
+                    ? "bg-orange-500/30 border border-orange-500/50 text-orange-300"
+                    : "bg-orange-100 text-orange-600"
+                }`}
+              >
+                {digit}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Digit Distribution */}
+        <div className="mb-8">
+          <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-white/70">Digit Distribution (Last 60)</h3>
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className={`p-4 rounded-lg text-center ${
+                  i <= 4
+                    ? theme === "dark"
+                      ? "bg-blue-500/10 border border-blue-500/30"
+                      : "bg-blue-50 border border-blue-200"
+                    : theme === "dark"
+                    ? "bg-orange-500/10 border border-orange-500/30"
+                    : "bg-orange-50 border border-orange-200"
+                }`}
+              >
+                <div className={`text-xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{i}</div>
+                <div className={`text-sm font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  {digitCounts[i]}x
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Last 100 Digits Chart */}
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-widest mb-3 text-white/70">Last 100 Digits Trend</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "#404040" : "#e5e5e5"} />
+              <XAxis dataKey="tick" stroke={theme === "dark" ? "#808080" : "#666"} />
+              <YAxis stroke={theme === "dark" ? "#808080" : "#666"} domain={[0, 9]} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: theme === "dark" ? "#1a1a1a" : "#fff",
+                  border: `1px solid ${theme === "dark" ? "#404040" : "#ddd"}`,
+                }}
+              />
+              <Line type="monotone" dataKey="digit" stroke="#8b5cf6" strokeWidth={2} dot={false} isAnimationActive={true} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      <div
-        className={`rounded-xl p-4 sm:p-6 border grid grid-cols-3 gap-4 ${theme === "dark"
-          ? "bg-gradient-to-br from-[#0f1629]/80 to-[#1a2235]/80 border-purple-500/20"
-          : "bg-white border-gray-200"
-          }`}
-      >
-        <Card
-          className={`p-3 text-center ${theme === "dark" ? "bg-purple-500/10 border-purple-500/30" : "bg-purple-50 border-purple-200"}`}
-        >
-          <p className={`text-xs font-semibold mb-1 ${theme === "dark" ? "text-purple-300" : "text-purple-700"}`}>
-            Market Power
-          </p>
-          <p className="text-2xl font-bold text-purple-400">{analysis.marketPower.toFixed(1)}%</p>
-        </Card>
-        <Card
-          className={`p-3 text-center ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-yellow-50 border-yellow-200"}`}
-        >
-          <p className={`text-xs font-semibold mb-1 ${theme === "dark" ? "text-yellow-300" : "text-yellow-700"}`}>
-            Volatility
-          </p>
-          <p className={`text-2xl font-bold ${analysis.volatility > 20 ? "text-red-400" : "text-green-400"}`}>
-            {analysis.volatility.toFixed(1)}%
-          </p>
-        </Card>
-        <Card
-          className={`p-3 text-center ${theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}
-        >
-          <p className={`text-xs font-semibold mb-1 ${theme === "dark" ? "text-blue-300" : "text-blue-700"}`}>
-            Confirmed Ticks
-          </p>
-          <p className="text-2xl font-bold text-blue-400">{signal.confirmedTicks}</p>
-        </Card>
-      </div>
+      {/* Trading Console Tab */}
+      <Tabs defaultValue="console" className="w-full">
+        <TabsContent value="console" className="space-y-6">
+          <div className="soft-card p-6 border-white/5">
+            <h2 className="text-xl font-bold mb-6 text-white">Trading Console</h2>
 
-      <div className="flex gap-3">
-        {signal.status === "RUN NOW" && (
-          <Button
-            onClick={handleTrade}
-            size="lg"
-            className="flex-1 text-base sm:text-lg font-bold py-6 text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 animate-pulse shadow-[0_0_30px_rgba(249,115,22,0.6)]"
-          >
-            🚀 START TRADING NOW
-          </Button>
-        )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 block mb-2">Market Selection</label>
+                <select
+                  value={selectedMarket}
+                  onChange={(e) => setSelectedMarket(e.target.value as any)}
+                  className={`w-full p-3 rounded-lg border ${
+                    theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
+                  }`}
+                >
+                  <option value="manual">Manual</option>
+                  <option value="over">Over (5-9)</option>
+                  <option value="under">Under (0-4)</option>
+                </select>
+              </div>
 
-        {signal.status === "TRADING" && (
-          <Button
-            onClick={handleExit}
-            size="lg"
-            className="flex-1 text-base sm:text-lg font-bold py-6 text-white bg-red-500 hover:bg-red-600"
-          >
-            Exit Trade
-          </Button>
-        )}
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 block mb-2">Ticks</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={ticks}
+                  onChange={(e) => setTicks(parseInt(e.target.value))}
+                  className={theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : ""}
+                />
+              </div>
 
-        {signal.status !== "NEUTRAL" && signal.status !== "TRADING" && (
-          <Button
-            onClick={() =>
-              setSignal({
-                status: "NEUTRAL",
-                color: "gray",
-                type: null,
-                confidence: 0,
-                phase: 1,
-                confirmedTicks: 0,
-                tradingTicksRemaining: 0,
-                accuracy: 0,
-                successfulTrades: 0,
-                totalTrades: 0,
-              })
-            }
-            size="lg"
-            variant="outline"
-            className="flex-1 text-base sm:text-lg font-bold py-6"
-          >
-            Reset Analysis
-          </Button>
-        )}
-      </div>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 block mb-2">Stake ($)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={stake}
+                  onChange={(e) => setStake(parseInt(e.target.value))}
+                  className={theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : ""}
+                />
+              </div>
 
-      <Card className={`p-4 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}>
-        <p className={`text-xs sm:text-sm ${theme === "dark" ? "text-gray-300" : "text-gray-700"} leading-relaxed`}>
-          <span className="font-bold">How Advanced Over/Under Works:</span> Phase 1 analyzes initial market conditions.
-          If conditions are met, Phase 2 confirms with 15 additional ticks. When confidence reaches 56% or higher with
-          increasing trend, a RUN NOW signal appears (orange with glow). You have maximum 20 ticks to trade. Exit signal
-          appears if market changes or time expires.
-        </p>
-      </Card>
+              <div>
+                <label className="text-xs font-bold uppercase text-gray-400 block mb-2">Entry Point</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="9"
+                  value={entryPoint}
+                  onChange={(e) => setEntryPoint(parseInt(e.target.value))}
+                  className={theme === "dark" ? "bg-gray-900 border-gray-700 text-white" : ""}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex items-center gap-2">
+                <Switch checked={useMartingale} onCheckedChange={setUseMartingale} />
+                <span className="text-sm font-semibold">Martingale</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={autoTrading} onCheckedChange={setAutoTrading} />
+                <span className="text-sm font-semibold">Auto Trading</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleTrade}
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-lg"
+            >
+              Execute Trade
+            </Button>
+          </div>
+
+          {/* Transaction History */}
+          <div className="soft-card p-6 border-white/5">
+            <h3 className="text-lg font-bold mb-4 text-white">Performance</h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div
+                className={`p-4 rounded-lg text-center ${
+                  theme === "dark" ? "bg-purple-500/10 border border-purple-500/30" : "bg-purple-50 border border-purple-200"
+                }`}
+              >
+                <div className={`text-2xl font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  {transactionHistory.length}
+                </div>
+                <div className={`text-xs font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Total Trades
+                </div>
+              </div>
+
+              <div
+                className={`p-4 rounded-lg text-center ${
+                  theme === "dark" ? "bg-green-500/10 border border-green-500/30" : "bg-green-50 border border-green-200"
+                }`}
+              >
+                <div className={`text-2xl font-bold text-green-400`}>{wins}</div>
+                <div className={`text-xs font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Wins
+                </div>
+              </div>
+
+              <div
+                className={`p-4 rounded-lg text-center ${
+                  theme === "dark" ? "bg-red-500/10 border border-red-500/30" : "bg-red-50 border border-red-200"
+                }`}
+              >
+                <div className={`text-2xl font-bold text-red-400`}>{losses}</div>
+                <div className={`text-xs font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Losses
+                </div>
+              </div>
+
+              <div
+                className={`p-4 rounded-lg text-center ${
+                  totalProfit >= 0
+                    ? theme === "dark"
+                      ? "bg-green-500/10 border border-green-500/30"
+                      : "bg-green-50 border border-green-200"
+                    : theme === "dark"
+                    ? "bg-red-500/10 border border-red-500/30"
+                    : "bg-red-50 border border-red-200"
+                }`}
+              >
+                <div className={`text-2xl font-bold ${totalProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {totalProfit >= 0 ? "+" : ""}{totalProfit.toFixed(2)}
+                </div>
+                <div className={`text-xs font-semibold ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                  Total Profit
+                </div>
+              </div>
+            </div>
+
+            {transactionHistory.length > 0 && (
+              <div className={`rounded-lg overflow-hidden border ${theme === "dark" ? "border-gray-700" : "border-gray-200"}`}>
+                <div className="max-h-64 overflow-y-auto">
+                  {transactionHistory.slice(0, 10).map((trade) => (
+                    <div
+                      key={trade.id}
+                      className={`p-3 border-b flex items-center justify-between ${
+                        theme === "dark" ? "border-gray-700 bg-white/2" : "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <div>
+                        <div className={`text-sm font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                          {strategy.toUpperCase()} - ${trade.stake}
+                        </div>
+                        <div className={`text-xs ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+                          {trade.ticks} ticks - {trade.result}
+                        </div>
+                      </div>
+                      <div className={`text-sm font-bold ${trade.result === "win" ? "text-green-400" : "text-red-400"}`}>
+                        {trade.result === "win" ? "+" : ""}{trade.profit.toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
